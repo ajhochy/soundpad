@@ -23,6 +23,7 @@ class MidiSignals(QObject):
     pad_toggled = pyqtSignal(int)        # pad_index (0-based)
     knob_moved = pyqtSignal(int, int)    # pad_index (0-based), value 0-127
     fader_moved = pyqtSignal(int)        # value 0-127
+    learn_captured = pyqtSignal(int, int, int)  # msg_type (0x90/0xB0), channel, byte1
 
 
 class MidiHandler:
@@ -31,6 +32,7 @@ class MidiHandler:
         self.signals = MidiSignals()
         self._midi_in = rtmidi.MidiIn()
         self._running = False
+        self._learn_mode = False
 
     def start(self):
         """Open the first available MIDI port and start listening."""
@@ -49,6 +51,14 @@ class MidiHandler:
             self._midi_in.close_port()
             self._running = False
 
+    def set_learn_mode(self, active: bool):
+        """Enable or disable MIDI learn mode.
+
+        While active, the next Note-on or CC message is captured and emitted
+        via signals.learn_captured instead of being processed normally.
+        """
+        self._learn_mode = active
+
     def reload_map(self):
         """Call after saving new MIDI mappings in SettingsDialog."""
         # Callback reads from config.midi_map on every message — no restart needed.
@@ -66,6 +76,12 @@ class MidiHandler:
         status, byte1, byte2 = message[0], message[1], message[2]
         msg_type = status & 0xF0
         channel = status & 0x0F
+
+        # Learn mode: capture the next Note-on or CC and hand it to the dialog
+        if self._learn_mode and msg_type in (0x90, 0xB0) and byte2 > 0:
+            self._learn_mode = False
+            self.signals.learn_captured.emit(msg_type, channel, byte1)
+            return
 
         midi_map = self._config.midi_map
 
