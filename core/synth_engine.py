@@ -17,6 +17,7 @@ The synth is created with the JACK audio driver so pw-jack routes it through
 PipeWire automatically.
 """
 
+import ctypes
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -65,34 +66,50 @@ class SynthEngine:
 
     def _build_catalogue(self):
         """
-        Enumerate every bank/program across all loaded soundfonts.
+        Enumerate every preset that actually exists in each loaded soundfont
+        using FluidSynth's sfont iteration API via ctypes.
+
         Each entry: {soundfont_path, soundfont_name, bank, program, label, gm_family}
-        Sorted by GM family (program // 8) then label.
+        Sorted by GM family (bank-0 program // 8) then label.
         """
         self._catalogue = []
+
+        # pyFluidSynth exposes the underlying ctypes CDLL as fluidsynth.lib
+        _lib = fluidsynth.lib
+        _lib.fluid_synth_get_sfont_by_id.restype = ctypes.c_void_p
+        _lib.fluid_sfont_iteration_next.restype = ctypes.c_void_p
+        _lib.fluid_preset_get_name.restype = ctypes.c_char_p
+        _lib.fluid_preset_get_banknum.restype = ctypes.c_int
+        _lib.fluid_preset_get_num.restype = ctypes.c_int
+
         for sf_path, sfid in self._sf_ids.items():
             sf_name = Path(sf_path).stem
-            # FluidSynth exposes sfont presets via iteration
-            preset = self._fs.sfont_select(0, sfid)  # select temporarily
-            for bank in range(128):
-                for prog in range(128):
-                    name = self._fs.channel_info(0)  # placeholder — see note
-                    # TODO: use fluidsynth.Synth.sfont_get_preset_name when
-                    # available in the installed pyFluidSynth version, or
-                    # fall back to General MIDI program name lookup table.
-                    gm_name = GM_PROGRAM_NAMES.get(prog, f"Program {prog}")
-                    self._catalogue.append({
-                        "soundfont_path": sf_path,
-                        "soundfont_name": sf_name,
-                        "bank": bank,
-                        "program": prog,
-                        "label": gm_name,
-                        "gm_family": prog // 8,
-                    })
-            break  # placeholder — full implementation iterates properly
+            sfont_ptr = _lib.fluid_synth_get_sfont_by_id(self._fs.synth, ctypes.c_uint(sfid))
+            if not sfont_ptr:
+                continue
 
-        # Real implementation: use fluid_sfont_iteration_start / next
-        # to walk only the presets that actually exist in each soundfont.
+            _lib.fluid_sfont_iteration_start(ctypes.c_void_p(sfont_ptr))
+            while True:
+                preset_ptr = _lib.fluid_sfont_iteration_next(ctypes.c_void_p(sfont_ptr))
+                if not preset_ptr:
+                    break
+
+                bank = _lib.fluid_preset_get_banknum(ctypes.c_void_p(preset_ptr))
+                prog = _lib.fluid_preset_get_num(ctypes.c_void_p(preset_ptr))
+                raw_name = _lib.fluid_preset_get_name(ctypes.c_void_p(preset_ptr))
+                name = (raw_name.decode("utf-8", errors="replace")
+                        if raw_name else GM_PROGRAM_NAMES.get(prog, f"Program {prog}"))
+
+                self._catalogue.append({
+                    "soundfont_path": sf_path,
+                    "soundfont_name": sf_name,
+                    "bank": bank,
+                    "program": prog,
+                    "label": name,
+                    "gm_family": prog // 8 if bank == 0 else 0,
+                })
+
+        self._catalogue.sort(key=lambda e: (e["gm_family"], e["label"]))
 
     @property
     def catalogue(self) -> list[dict]:
