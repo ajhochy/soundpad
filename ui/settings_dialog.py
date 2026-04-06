@@ -12,6 +12,7 @@ Saves to ~/.config/soundpad/midi_map.json on "OK".
 Calls midi_handler.reload_map() so changes take effect without restarting.
 """
 
+from typing import Optional
 from PyQt5.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTableWidget, QTableWidgetItem, QHeaderView, QDialogButtonBox
@@ -31,6 +32,8 @@ class SettingsDialog(QDialog):
 
         self.setWindowTitle("MIDI Settings")
         self.setMinimumWidth(460)
+        self._active_learn_btn: Optional[QPushButton] = None
+        self._midi.signals.learn_captured.connect(self._on_learn_captured)
         self._build_ui()
 
     def _build_ui(self):
@@ -49,13 +52,11 @@ class SettingsDialog(QDialog):
         layout.addWidget(QLabel("<b>Master Fader CC</b>"))
         fader_row = QHBoxLayout()
         fader = self._working_map["master_fader"]
-        self._fader_ch = QTableWidgetItem(str(fader["channel"] + 1))
-        self._fader_cc = QTableWidgetItem(str(fader["cc"]))
-        fader_label = QLabel(f"Channel: {fader['channel'] + 1}   CC: {fader['cc']}")
-        fader_label.setStyleSheet("color: #a0a0c0;")
-        fader_row.addWidget(fader_label)
+        self._fader_label = QLabel(f"Channel: {fader['channel'] + 1}   CC: {fader['cc']}")
+        self._fader_label.setStyleSheet("color: #a0a0c0;")
+        fader_row.addWidget(self._fader_label)
         learn_fader = QPushButton("Learn")
-        learn_fader.clicked.connect(lambda: self._start_learn("fader", 0))
+        learn_fader.clicked.connect(lambda checked=False, b=learn_fader: self._start_learn("fader", 0, b))
         fader_row.addWidget(learn_fader)
         layout.addLayout(fader_row)
 
@@ -77,27 +78,63 @@ class SettingsDialog(QDialog):
         return table
 
     def _populate_pad_table(self):
+        self._active_learn_btn = None  # stale after table rebuild
         for i, entry in enumerate(self._working_map["pads"]):
             self._pad_table.setItem(i, 0, QTableWidgetItem(f"Pad {entry['pad']}"))
             self._pad_table.setItem(i, 1, QTableWidgetItem(str(entry["channel"] + 1)))
             self._pad_table.setItem(i, 2, QTableWidgetItem(str(entry["note"])))
             btn = QPushButton("Learn")
-            btn.clicked.connect(lambda checked, idx=i: self._start_learn("pad", idx))
+            btn.clicked.connect(lambda checked, idx=i, b=btn: self._start_learn("pad", idx, b))
             self._pad_table.setCellWidget(i, 3, btn)
 
     def _populate_knob_table(self):
+        self._active_learn_btn = None  # stale after table rebuild
         for i, entry in enumerate(self._working_map["knobs"]):
             self._knob_table.setItem(i, 0, QTableWidgetItem(f"Pad {entry['pad']}"))
             self._knob_table.setItem(i, 1, QTableWidgetItem(str(entry["channel"] + 1)))
             self._knob_table.setItem(i, 2, QTableWidgetItem(str(entry["cc"])))
             btn = QPushButton("Learn")
-            btn.clicked.connect(lambda checked, idx=i: self._start_learn("knob", idx))
+            btn.clicked.connect(lambda checked, idx=i, b=btn: self._start_learn("knob", idx, b))
             self._knob_table.setCellWidget(i, 3, btn)
 
-    def _start_learn(self, target_type: str, index: int):
-        """Temporarily redirect MIDI input to capture the next message."""
+    def _start_learn(self, target_type: str, index: int, btn: QPushButton):
+        """Activate MIDI learn: next Note-on or CC updates the target row."""
+        # Cancel any previous pending learn
+        if self._active_learn_btn is not None:
+            self._active_learn_btn.setText("Learn")
+            self._active_learn_btn.setEnabled(True)
+
         self._learning_target = (target_type, index)
-        # TODO: hook into MidiHandler's learn mode and update table on capture
+        self._active_learn_btn = btn
+        btn.setText("Waiting…")
+        btn.setEnabled(False)
+        self._midi.set_learn_mode(True)
+
+    def _on_learn_captured(self, msg_type: int, channel: int, byte1: int):
+        """Receive the captured MIDI message and update the mapping."""
+        if self._active_learn_btn is not None:
+            self._active_learn_btn.setText("Learn")
+            self._active_learn_btn.setEnabled(True)
+            self._active_learn_btn = None
+
+        if self._learning_target is None:
+            return
+
+        target_type, index = self._learning_target
+        self._learning_target = None
+
+        if target_type == "pad" and msg_type == 0x90:
+            self._working_map["pads"][index]["channel"] = channel
+            self._working_map["pads"][index]["note"] = byte1
+            self._populate_pad_table()
+        elif target_type == "knob" and msg_type == 0xB0:
+            self._working_map["knobs"][index]["channel"] = channel
+            self._working_map["knobs"][index]["cc"] = byte1
+            self._populate_knob_table()
+        elif target_type == "fader" and msg_type == 0xB0:
+            self._working_map["master_fader"]["channel"] = channel
+            self._working_map["master_fader"]["cc"] = byte1
+            self._fader_label.setText(f"Channel: {channel + 1}   CC: {byte1}")
 
     def _reset_defaults(self):
         from core.config import DEFAULT_MIDI_MAP
