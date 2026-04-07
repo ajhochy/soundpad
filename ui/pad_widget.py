@@ -58,7 +58,7 @@ class PadWidget(QWidget):
         layout.addWidget(self._volume_bar)
 
         # Edit button — absolutely positioned so it can scale freely
-        self._edit_btn = QPushButton("✎", self)
+        self._edit_btn = QPushButton("✏️", self)
         self._edit_btn.setCursor(Qt.PointingHandCursor)
         self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
 
@@ -74,8 +74,8 @@ class PadWidget(QWidget):
 
         # Absolutely position edit btn in top-right corner
         btn_size = max(28, h // 4)
-        btn_font_pt = max(12, h // 10)
-        self._edit_btn.setFont(QFont("Sans", btn_font_pt))
+        btn_font_pt = max(14, btn_size * 2 // 3)
+        self._edit_btn.setFont(QFont("Noto Color Emoji", btn_font_pt))
         self._edit_btn.setGeometry(w - btn_size - 6, 6, btn_size, btn_size)
         self._edit_btn.raise_()
 
