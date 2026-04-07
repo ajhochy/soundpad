@@ -116,11 +116,15 @@ class SynthEngine:
                     continue
 
                 # GM family assignment:
-                #   bank 128 = percussion kit → Percussive (14)
-                #   bank 1–127 = XG/GS variations, program still maps to GM family
-                #   bank 0 = standard GM
-                if bank == 128:
-                    gm_family = 14
+                #   bank 128     = standard percussion → Percussive (14)
+                #   bank 120/127 = GS alternate drum maps (some soundfonts use
+                #                  these instead of 128 for drum kits)
+                #   bank 64      = XG sound effects bank (Timbres of Heaven)
+                #   bank 0–127   = GM/XG/GS melodic variations; prog encodes family
+                if bank in (120, 127, 128):
+                    gm_family = 14   # Percussive
+                elif bank == 64:
+                    gm_family = 15   # Sound Effects
                 else:
                     gm_family = prog // 8
 
