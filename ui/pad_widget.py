@@ -15,7 +15,7 @@ Each pad widget emits:
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 from PyQt5.QtGui import QFont
 
 
@@ -57,10 +57,11 @@ class PadWidget(QWidget):
         self._volume_bar.setFixedHeight(6)
         layout.addWidget(self._volume_bar)
 
-        # Edit button — absolutely positioned so it can scale freely
-        self._edit_btn = QPushButton("✏️", self)
+        # Edit label — absolutely positioned, scales freely unlike QPushButton
+        self._edit_btn = QLabel("✏️", self)
+        self._edit_btn.setAlignment(Qt.AlignCenter)
         self._edit_btn.setCursor(Qt.PointingHandCursor)
-        self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
+        self._edit_btn.setStyleSheet("background: rgba(0,0,0,0.35); border-radius: 6px;")
 
         self.setCursor(Qt.PointingHandCursor)
 
@@ -74,13 +75,15 @@ class PadWidget(QWidget):
 
         # Absolutely position edit btn in top-right corner
         btn_size = max(28, h // 4)
-        btn_font_pt = max(14, btn_size * 2 // 3)
-        self._edit_btn.setFont(QFont("Noto Color Emoji", btn_font_pt))
+        self._edit_btn.setFont(QFont("Noto Color Emoji", btn_size * 2 // 3))
         self._edit_btn.setGeometry(w - btn_size - 6, 6, btn_size, btn_size)
         self._edit_btn.raise_()
 
     def mousePressEvent(self, event):
-        self.toggle_requested.emit(self._pad_index)
+        if self._edit_btn.geometry().contains(event.pos()):
+            self.edit_requested.emit(self._pad_index)
+        else:
+            self.toggle_requested.emit(self._pad_index)
 
     # ------------------------------------------------------------------
     # Public update API
