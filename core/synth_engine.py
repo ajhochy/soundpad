@@ -110,13 +110,27 @@ class SynthEngine:
                 name = (raw_name.decode("utf-8", errors="replace")
                         if raw_name else GM_PROGRAM_NAMES.get(prog, f"Program {prog}"))
 
+                # Skip internal/garbage presets (names that are just dashes or blanks)
+                clean = name.strip("-_ \t")
+                if not clean:
+                    continue
+
+                # GM family assignment:
+                #   bank 128 = percussion kit → Percussive (14)
+                #   bank 1–127 = XG/GS variations, program still maps to GM family
+                #   bank 0 = standard GM
+                if bank == 128:
+                    gm_family = 14
+                else:
+                    gm_family = prog // 8
+
                 self._catalogue.append({
                     "soundfont_path": sf_path,
                     "soundfont_name": sf_name,
                     "bank": bank,
                     "program": prog,
                     "label": name,
-                    "gm_family": prog // 8 if bank == 0 else 0,
+                    "gm_family": gm_family,
                 })
 
         self._catalogue.sort(key=lambda e: (e["gm_family"], e["label"]))
@@ -281,5 +295,8 @@ GM_FAMILY_EMOJI = [
 
 def gm_family_emoji(bank: int, program: int) -> str:
     """Return the emoji for a sound's GM family."""
-    family = program // 8 if bank == 0 else 14  # default to Percussive for non-GM banks
+    if bank == 128:
+        family = 14  # percussion
+    else:
+        family = program // 8
     return GM_FAMILY_EMOJI[family % len(GM_FAMILY_EMOJI)]
