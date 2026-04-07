@@ -15,7 +15,7 @@ Each pad widget emits:
 """
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar
-from PyQt5.QtCore import pyqtSignal, Qt, QPoint
+from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 
 

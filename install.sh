@@ -46,11 +46,12 @@ APP_DIR="/home/$DESKTOP_USER/.local/share/applications"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=no"
 
-_ssh() { ssh $SSH_OPTS "$TARGET_HOST" "$@"; }
+_ssh()  { ssh $SSH_OPTS "$TARGET_HOST" "$@"; }
+_ssht() { ssh -t $SSH_OPTS "$TARGET_HOST" "$@"; }   # allocates a PTY (needed for sudo prompts)
 
-# Try passwordless sudo first, fall back to prompting
+# Try passwordless sudo first; fall back to an interactive prompt (requires PTY via _ssht).
 _sudo() {
-    _ssh "sudo -n $* 2>/dev/null || sudo $*"
+    _ssht "sudo -n $* 2>/dev/null || sudo $*"
 }
 
 echo ""
@@ -150,7 +151,7 @@ echo "  (fluid-soundfont-gm and fluid-soundfont-gs already installed via apt)"
 
 echo "==> Setting up autostart for $DESKTOP_USER..."
 _sudo "mkdir -p $AUTOSTART_DIR"
-_ssh "echo celrew | sudo -S tee $AUTOSTART_DIR/soundpad.desktop > /dev/null" << 'DESKTOP'
+_ssh "cat > /tmp/soundpad-autostart.desktop" << 'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=SoundPad
@@ -159,6 +160,7 @@ Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
 DESKTOP
+_sudo "mv /tmp/soundpad-autostart.desktop $AUTOSTART_DIR/soundpad.desktop"
 _sudo "chown -R $DESKTOP_USER:$DESKTOP_USER $AUTOSTART_DIR"
 
 # --------------------------------------------------------------------------
@@ -167,7 +169,7 @@ _sudo "chown -R $DESKTOP_USER:$DESKTOP_USER $AUTOSTART_DIR"
 
 echo "==> Installing app launcher icon..."
 _sudo "mkdir -p $APP_DIR"
-_ssh "sudo tee $APP_DIR/soundpad.desktop > /dev/null" << 'DESKTOP'
+_ssh "cat > /tmp/soundpad-launcher.desktop" << 'DESKTOP'
 [Desktop Entry]
 Type=Application
 Name=SoundPad
@@ -178,6 +180,7 @@ Terminal=false
 Categories=Audio;Music;Education;
 StartupNotify=true
 DESKTOP
+_sudo "mv /tmp/soundpad-launcher.desktop $APP_DIR/soundpad.desktop"
 _sudo "chown -R $DESKTOP_USER:$DESKTOP_USER $APP_DIR"
 _sudo "chmod -R 755 $TARGET_DIR"
 

@@ -4,10 +4,10 @@ SoundPad — entry point.
 Initialises the Qt application, loads config, starts the synth engine and
 MIDI handler, then shows the main window.  Launched via:
 
-    pw-jack python3 soundpad.py
+    python3 soundpad.py
 
-The pw-jack wrapper ensures PipeWire's JACK bridge is active so FluidSynth
-can connect to the system audio graph.
+FluidSynth uses the PulseAudio driver, which PipeWire exposes automatically.
+No pw-jack wrapper is needed.
 """
 
 import sys

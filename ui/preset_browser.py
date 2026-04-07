@@ -12,7 +12,7 @@ Selecting an instrument:
 Layout:
   - Header: ← Back | "Choose sound for Pad N"
   - Family filter row (scrollable chips): Piano | Strings | Brass | ...
-  - Instrument grid (3 columns): emoji + name + soundfont name tiles
+  - Instrument grid (6 columns): emoji + name + soundfont name tiles
 """
 
 from PyQt5.QtWidgets import (
@@ -174,7 +174,7 @@ class PresetBrowser(QWidget):
             empty_label.setAlignment(Qt.AlignCenter)
             empty_label.setWordWrap(True)
             empty_label.setStyleSheet("color: #a0a0c0; font-size: 13px; padding: 40px;")
-            self._grid_layout.addWidget(empty_label, 0, 0, 1, 3)
+            self._grid_layout.addWidget(empty_label, 0, 0, 1, 6)
             return
 
         cols = 6
