@@ -6,14 +6,15 @@ Visual states:
   - Inactive: dark background, solid dim border, sound name shown dimly
   - Active  : bright green background + border, sound name bright
 
-Fonts scale with widget height so the UI looks good at any window size.
+Fonts scale with widget height. The edit button is absolutely positioned
+so it can be resized freely without layout constraints.
 
 Each pad widget emits:
   - toggle_requested(pad_index)  when clicked on screen
   - edit_requested(pad_index)    when the ✎ button is clicked
 """
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
 
@@ -39,18 +40,9 @@ class PadWidget(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(4)
 
-        header = QHBoxLayout()
         self._pad_label = QLabel(f"PAD {self._pad_index + 1}")
         self._pad_label.setFont(QFont("Sans", 9, QFont.Bold))
-        header.addWidget(self._pad_label)
-        header.addStretch()
-
-        self._edit_btn = QPushButton("✎")
-        self._edit_btn.setFont(QFont("Sans", 16))
-        self._edit_btn.setCursor(Qt.PointingHandCursor)
-        self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
-        header.addWidget(self._edit_btn)
-        layout.addLayout(header)
+        layout.addWidget(self._pad_label)
 
         self._sound_label = QLabel("empty")
         self._sound_label.setFont(QFont("Sans", 12, QFont.Bold))
@@ -65,18 +57,27 @@ class PadWidget(QWidget):
         self._volume_bar.setFixedHeight(6)
         layout.addWidget(self._volume_bar)
 
+        # Edit button — absolutely positioned so it can scale freely
+        self._edit_btn = QPushButton("✎", self)
+        self._edit_btn.setCursor(Qt.PointingHandCursor)
+        self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
+
         self.setCursor(Qt.PointingHandCursor)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
         h = self.height()
-        pad_pt = max(8, h // 14)
-        sound_pt = max(10, h // 9)
-        btn_pt = max(14, h // 8)
-        self._pad_label.setFont(QFont("Sans", pad_pt, QFont.Bold))
-        self._sound_label.setFont(QFont("Sans", sound_pt, QFont.Bold))
-        self._edit_btn.setFont(QFont("Sans", btn_pt))
-        self._edit_btn.updateGeometry()
+        w = self.width()
+
+        self._pad_label.setFont(QFont("Sans", max(8, h // 14), QFont.Bold))
+        self._sound_label.setFont(QFont("Sans", max(10, h // 9), QFont.Bold))
+
+        # Absolutely position edit btn in top-right corner
+        btn_size = max(28, h // 4)
+        btn_font_pt = max(12, h // 10)
+        self._edit_btn.setFont(QFont("Sans", btn_font_pt))
+        self._edit_btn.setGeometry(w - btn_size - 6, 6, btn_size, btn_size)
+        self._edit_btn.raise_()
 
     def mousePressEvent(self, event):
         self.toggle_requested.emit(self._pad_index)
