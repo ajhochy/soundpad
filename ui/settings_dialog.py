@@ -142,6 +142,8 @@ class SettingsDialog(QDialog):
         self._working_map = copy.deepcopy(DEFAULT_MIDI_MAP)
         self._populate_pad_table()
         self._populate_knob_table()
+        fader = self._working_map["master_fader"]
+        self._fader_label.setText(f"Channel: {fader['channel'] + 1}   CC: {fader['cc']}")
 
     def _save_and_close(self):
         self._config.midi_map = self._working_map

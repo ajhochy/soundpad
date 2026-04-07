@@ -31,11 +31,13 @@ FAMILY_EMOJI = ["🎹","🔔","🎹","🎸","🎸","🎻","🎻","🎺","🎷","
 class PresetBrowser(QWidget):
     sound_selected = pyqtSignal(int, str)   # pad_index, label
 
-    def __init__(self, synth, parent=None):
+    def __init__(self, synth, main_window, parent=None):
         super().__init__(parent)
         self._synth = synth
+        self._main_window = main_window
         self._pad_index = 0
         self._active_family = None   # None = show all
+        self._active_chip = None     # currently highlighted chip button
         self._build_ui()
 
     def open_for_pad(self, pad_index: int):
@@ -78,13 +80,15 @@ class PresetBrowser(QWidget):
 
         all_btn = QPushButton("All")
         all_btn.setCursor(Qt.PointingHandCursor)
-        all_btn.clicked.connect(lambda: self._filter_family(None))
+        all_btn.clicked.connect(lambda: self._filter_family(None, all_btn))
         family_layout.addWidget(all_btn)
+        self._active_chip = all_btn
+        self._set_chip_active(all_btn)
 
         for i, name in enumerate(GM_FAMILIES):
             btn = QPushButton(f"{FAMILY_EMOJI[i]} {name}")
             btn.setCursor(Qt.PointingHandCursor)
-            btn.clicked.connect(lambda checked, idx=i: self._filter_family(idx))
+            btn.clicked.connect(lambda checked, idx=i, b=btn: self._filter_family(idx, b))
             family_layout.addWidget(btn)
 
         family_scroll.setWidget(family_widget)
@@ -101,7 +105,24 @@ class PresetBrowser(QWidget):
         self._grid_layout.setSpacing(8)
         self._grid_scroll.setWidget(self._grid_widget)
 
-    def _filter_family(self, family_index):
+    _CHIP_DEFAULT_STYLE = ""
+    _CHIP_ACTIVE_STYLE = (
+        "QPushButton { background: #4c3b8a; color: #ffffff; "
+        "border: 1px solid #a78bfa; border-radius: 6px; padding: 5px 10px; font-size: 12px; }"
+    )
+
+    def _set_chip_active(self, btn: QPushButton):
+        btn.setStyleSheet(self._CHIP_ACTIVE_STYLE)
+
+    def _set_chip_inactive(self, btn: QPushButton):
+        btn.setStyleSheet(self._CHIP_DEFAULT_STYLE)
+
+    def _filter_family(self, family_index, chip_btn: QPushButton = None):
+        if self._active_chip is not None:
+            self._set_chip_inactive(self._active_chip)
+        self._active_chip = chip_btn
+        if chip_btn is not None:
+            self._set_chip_active(chip_btn)
         self._active_family = family_index
         self._refresh_grid()
 
@@ -116,14 +137,23 @@ class PresetBrowser(QWidget):
         if self._active_family is not None:
             catalogue = [e for e in catalogue if e["gm_family"] == self._active_family]
 
-        # Deduplicate by label for cleaner display
+        # Deduplicate by (label, soundfont_path) so identical names from
+        # different soundfonts are both shown.
         seen = set()
         unique = []
         for entry in catalogue:
-            key = entry["label"]
+            key = (entry["label"], entry["soundfont_path"])
             if key not in seen:
                 seen.add(key)
                 unique.append(entry)
+
+        if not unique:
+            empty_label = QLabel("No instruments found.\nTry installing fluid-soundfont-gm.")
+            empty_label.setAlignment(Qt.AlignCenter)
+            empty_label.setWordWrap(True)
+            empty_label.setStyleSheet("color: #a0a0c0; font-size: 13px; padding: 40px;")
+            self._grid_layout.addWidget(empty_label, 0, 0, 1, 3)
+            return
 
         cols = 3
         for i, entry in enumerate(unique):
@@ -181,5 +211,4 @@ class PresetBrowser(QWidget):
         self.sound_selected.emit(self._pad_index, entry["label"])
 
     def _go_back(self):
-        # Parent (MainWindow) connects this widget's parent stack to handle navigation
-        self.parent().show_main()
+        self._main_window.show_main()

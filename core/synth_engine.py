@@ -18,11 +18,15 @@ PipeWire automatically.
 """
 
 import ctypes
+import ctypes.util as _ctypes_util
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import fluidsynth
 from core.config import Config
+
+_lib_path = _ctypes_util.find_library("fluidsynth") or "libfluidsynth.so.3"
+_fluid_lib = ctypes.CDLL(_lib_path)
 
 
 @dataclass
@@ -53,6 +57,9 @@ class SynthEngine:
         self._catalogue: list[dict] = []
         self._build_catalogue()
 
+        # Align FluidSynth gain with the UI's default master volume of 80
+        self.set_master_volume(80)
+
     # ------------------------------------------------------------------
     # Soundfont management
     # ------------------------------------------------------------------
@@ -61,7 +68,7 @@ class SynthEngine:
         sf_dir = self._config.soundfont_dir
         for sf_path in sorted(sf_dir.glob("*.sf2")):
             sfid = self._fs.sfload(str(sf_path))
-            if sfid != fluidsynth.FAILED:
+            if sfid != -1:
                 self._sf_ids[str(sf_path)] = sfid
 
     def _build_catalogue(self):
@@ -74,8 +81,7 @@ class SynthEngine:
         """
         self._catalogue = []
 
-        # pyFluidSynth exposes the underlying ctypes CDLL as fluidsynth.lib
-        _lib = fluidsynth.lib
+        _lib = _fluid_lib
         _lib.fluid_synth_get_sfont_by_id.restype = ctypes.c_void_p
         _lib.fluid_sfont_iteration_next.restype = ctypes.c_void_p
         _lib.fluid_preset_get_name.restype = ctypes.c_char_p
@@ -124,6 +130,8 @@ class SynthEngine:
         state = self._pads[pad_index]
         sfid = self._sf_ids.get(soundfont_path)
         if sfid is None:
+            state.label = "[missing]"
+            state.active = False
             return
 
         state.soundfont_path = soundfont_path
@@ -158,6 +166,17 @@ class SynthEngine:
         state.volume = max(0, min(100, volume))
         if state.active:
             self._set_channel_volume(pad_index, state.volume)
+
+    def play_note(self, note: int, velocity: int):
+        """Play a note on all active pad channels (called from MIDI thread via Qt signal)."""
+        for i, state in enumerate(self._pads):
+            if state.active and state.soundfont_path:
+                self._fs.noteon(i, note, velocity)
+
+    def stop_note(self, note: int):
+        """Stop a note on all pad channels."""
+        for i in range(len(self._pads)):
+            self._fs.noteoff(i, note)
 
     def set_master_volume(self, volume: int):
         """Set master gain (0-100)."""

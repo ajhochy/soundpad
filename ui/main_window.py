@@ -47,7 +47,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(self._stack)
 
         self._build_main_view()
-        self._preset_browser = PresetBrowser(synth, self)
+        self._preset_browser = PresetBrowser(synth, self, self)
         self._preset_browser.sound_selected.connect(self._on_sound_selected)
         self._stack.addWidget(self._main_widget)
         self._stack.addWidget(self._preset_browser)
@@ -86,7 +86,19 @@ class MainWindow(QMainWindow):
         save_btn.clicked.connect(self._save_scene)
         bar.addWidget(save_btn)
 
+        self._delete_btn = QPushButton("✕")
+        self._delete_btn.setFixedWidth(32)
+        self._delete_btn.setCursor(Qt.PointingHandCursor)
+        self._delete_btn.setToolTip("Delete current scene")
+        self._delete_btn.clicked.connect(self._delete_scene)
+        self._delete_btn.setEnabled(False)
+        bar.addWidget(self._delete_btn)
+
         bar.addStretch()
+
+        self._midi_status_label = QLabel("⚠ No keyboard")
+        self._midi_status_label.setStyleSheet("color: #c08020; font-size: 10px;")
+        bar.addWidget(self._midi_status_label)
 
         settings_btn = QPushButton("⚙")
         settings_btn.setFixedWidth(36)
@@ -178,6 +190,30 @@ class MainWindow(QMainWindow):
             self._synth.apply_pad_states(scene["pads"])
             self._synth.set_master_volume(scene.get("master_volume", 80))
             self.apply_scene(name, scene)
+        self._update_delete_btn()
+
+    def _delete_scene(self):
+        name = self._scene_combo.currentText()
+        if not name:
+            return
+        self._scenes.delete_scene(name)
+        if self._current_scene_name == name:
+            self._current_scene_name = None
+        self._refresh_scene_list()
+        self._update_delete_btn()
+
+    def _update_delete_btn(self):
+        enabled = bool(self._scene_combo.currentText())
+        self._delete_btn.setEnabled(enabled)
+
+    def update_midi_status(self, connected: bool):
+        """Update the MIDI connection indicator in the scene bar."""
+        if connected:
+            self._midi_status_label.setText("🎹 Connected")
+            self._midi_status_label.setStyleSheet("color: #40c060; font-size: 10px;")
+        else:
+            self._midi_status_label.setText("⚠ No keyboard")
+            self._midi_status_label.setStyleSheet("color: #c08020; font-size: 10px;")
 
     def _save_scene(self):
         name, ok = QInputDialog.getText(self, "Save Scene", "Scene name:")
@@ -186,7 +222,10 @@ class MainWindow(QMainWindow):
             self._scenes.save_scene(name, state["master_volume"], state["pads"])
             self._current_scene_name = name
             self._refresh_scene_list()
+            self._scene_combo.blockSignals(True)
             self._scene_combo.setCurrentText(name)
+            self._scene_combo.blockSignals(False)
+            self._update_delete_btn()
 
     def _open_settings(self):
         dlg = SettingsDialog(self._config, self._midi, self)
@@ -201,6 +240,13 @@ class MainWindow(QMainWindow):
         sigs.pad_toggled.connect(self._on_pad_toggle)
         sigs.knob_moved.connect(self._on_knob_moved)
         sigs.fader_moved.connect(self._on_fader_moved)
+        sigs.note_on.connect(lambda note, vel: self._synth.play_note(note, vel))
+        sigs.note_off.connect(lambda note: self._synth.stop_note(note))
+        # Reflect initial connection state and keep it current
+        self.update_midi_status(self._midi.is_connected())
+        self._scene_combo.currentTextChanged.connect(
+            lambda _: self._update_delete_btn()
+        )
 
     def _on_knob_moved(self, pad_index: int, value: int):
         volume = int((value / 127.0) * 100)

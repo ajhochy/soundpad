@@ -14,6 +14,7 @@ Note: python-rtmidi uses 0-indexed channels internally.
 MIDI spec channels 1-16 map to rtmidi channels 0-15.
 """
 
+import copy
 import json
 import os
 from pathlib import Path
@@ -57,7 +58,7 @@ class Config:
         if MIDI_MAP_PATH.exists():
             with open(MIDI_MAP_PATH) as f:
                 return json.load(f)
-        return DEFAULT_MIDI_MAP
+        return copy.deepcopy(DEFAULT_MIDI_MAP)
 
     def save_midi_map(self):
         with open(MIDI_MAP_PATH, "w") as f:
@@ -65,7 +66,7 @@ class Config:
 
     def reset_midi_map(self):
         """Restore factory defaults and save."""
-        self.midi_map = DEFAULT_MIDI_MAP
+        self.midi_map = copy.deepcopy(DEFAULT_MIDI_MAP)
         self.save_midi_map()
 
     @property

@@ -93,29 +93,34 @@ class PadWidget(QWidget):
 
     def _apply_style(self, active: bool, has_sound: bool):
         if active:
-            bg = self._colour
-            text_colour = "#ffffff" if self._colour in ("#e05b8a", "#7c5cbf", "#e07b2a", "#3a9bd5", "#d54a4a") else "#001a10"
+            # Always white text — all accent colours are saturated enough to support it
             self.setStyleSheet(f"""
                 PadWidget {{
                     background: {self._colour};
                     border-radius: 10px;
-                    border: none;
+                    border: 3px solid white;
                 }}
             """)
-            self._pad_label.setStyleSheet(f"color: rgba(255,255,255,0.5);")
-            self._sound_label.setStyleSheet(f"color: {text_colour};")
-            self._volume_bar.setStyleSheet(f"QProgressBar::chunk {{ background: rgba(0,0,0,0.4); border-radius: 2px; }}")
+            self._pad_label.setStyleSheet("color: rgba(255,255,255,0.75); font-weight: bold;")
+            self._sound_label.setStyleSheet("color: #ffffff;")
+            self._volume_bar.setStyleSheet("""
+                QProgressBar { background: rgba(0,0,0,0.3); border-radius: 2px; border: none; }
+                QProgressBar::chunk { background: rgba(255,255,255,0.8); border-radius: 2px; }
+            """)
         elif has_sound:
             self.setStyleSheet("""
                 PadWidget {
                     background: #1e1d2e;
                     border-radius: 10px;
-                    border: 1px solid #3a3850;
+                    border: 1px solid #5a5880;
                 }
             """)
-            self._pad_label.setStyleSheet("color: #4a4870;")
-            self._sound_label.setStyleSheet("color: #7a7898;")
-            self._volume_bar.setStyleSheet("QProgressBar::chunk { background: #3a3850; border-radius: 2px; }")
+            self._pad_label.setStyleSheet("color: #7a78a0;")
+            self._sound_label.setStyleSheet("color: #c0c0e0;")
+            self._volume_bar.setStyleSheet("""
+                QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
+                QProgressBar::chunk { background: #5a5880; border-radius: 2px; }
+            """)
         else:
             self.setStyleSheet("""
                 PadWidget {
@@ -124,6 +129,9 @@ class PadWidget(QWidget):
                     border: 1px dashed #2e2d3e;
                 }
             """)
-            self._pad_label.setStyleSheet("color: #333248;")
-            self._sound_label.setStyleSheet("color: #333248;")
-            self._volume_bar.setStyleSheet("QProgressBar::chunk { background: #2e2d3e; border-radius: 2px; }")
+            self._pad_label.setStyleSheet("color: #3a3858;")
+            self._sound_label.setStyleSheet("color: #3a3858;")
+            self._volume_bar.setStyleSheet("""
+                QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
+                QProgressBar::chunk { background: #2e2d3e; border-radius: 2px; }
+            """)
