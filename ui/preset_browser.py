@@ -17,7 +17,7 @@ Layout:
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QGridLayout, QFrame
+    QScrollArea, QGridLayout, QFrame, QLineEdit
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
@@ -36,6 +36,7 @@ class PresetBrowser(QWidget):
         self._pad_index = 0
         self._active_family = None   # None = show all
         self._active_chip = None     # currently highlighted chip button
+        self._search_text = ""
         self._build_ui()
 
     def open_for_pad(self, pad_index: int):
@@ -43,6 +44,7 @@ class PresetBrowser(QWidget):
         self._header_label.setText(
             f"Choose sound for <b style='color:#a78bfa;'>Pad {pad_index + 1}</b>"
         )
+        self._search_box.clear()
         self._refresh_grid()
 
     def _build_ui(self):
@@ -64,6 +66,21 @@ class PresetBrowser(QWidget):
         header.addWidget(self._header_label)
         header.addStretch()
         layout.addLayout(header)
+
+        # Family filter chips
+        # Search box
+        self._search_box = QLineEdit()
+        self._search_box.setPlaceholderText("🔍  Search instruments...")
+        self._search_box.setStyleSheet("""
+            QLineEdit {
+                background: #1e1d2e; color: #ffffff;
+                border: 1px solid #3e3d5e; border-radius: 8px;
+                padding: 8px 14px; font-size: 14px;
+            }
+            QLineEdit:focus { border: 1px solid #a78bfa; }
+        """)
+        self._search_box.textChanged.connect(self._on_search)
+        layout.addWidget(self._search_box)
 
         # Family filter chips
         family_scroll = QScrollArea()
@@ -115,6 +132,10 @@ class PresetBrowser(QWidget):
     def _set_chip_inactive(self, btn: QPushButton):
         btn.setStyleSheet(self._CHIP_DEFAULT_STYLE)
 
+    def _on_search(self, text: str):
+        self._search_text = text.strip().lower()
+        self._refresh_grid()
+
     def _filter_family(self, family_index, chip_btn: QPushButton = None):
         if self._active_chip is not None:
             self._set_chip_inactive(self._active_chip)
@@ -134,6 +155,8 @@ class PresetBrowser(QWidget):
         catalogue = self._synth.catalogue
         if self._active_family is not None:
             catalogue = [e for e in catalogue if e["gm_family"] == self._active_family]
+        if self._search_text:
+            catalogue = [e for e in catalogue if self._search_text in e["label"].lower()]
 
         # Deduplicate by (label, soundfont_path) so identical names from
         # different soundfonts are both shown.
@@ -146,7 +169,8 @@ class PresetBrowser(QWidget):
                 unique.append(entry)
 
         if not unique:
-            empty_label = QLabel("No instruments found.\nTry installing fluid-soundfont-gm.")
+            msg = f"No results for \"{self._search_text}\"." if self._search_text else "No instruments found.\nTry installing fluid-soundfont-gm."
+            empty_label = QLabel(msg)
             empty_label.setAlignment(Qt.AlignCenter)
             empty_label.setWordWrap(True)
             empty_label.setStyleSheet("color: #a0a0c0; font-size: 13px; padding: 40px;")
