@@ -74,7 +74,7 @@ class PadWidget(QWidget):
         self._sound_label.setFont(QFont("Sans", max(10, h // 9), QFont.Bold))
 
         # Absolutely position edit btn in top-right corner
-        btn_size = max(28, h // 4)
+        btn_size = max(22, h // 6)
         self._edit_btn.setFont(QFont("Noto Color Emoji", btn_size * 2 // 3))
         self._edit_btn.setGeometry(w - btn_size - 6, 6, btn_size, btn_size)
         self._edit_btn.raise_()
