@@ -4,7 +4,7 @@ pad_widget.py — a single pad tile in the 4x2 grid.
 Visual states:
   - Empty   : dark background, dashed border, "empty" label
   - Inactive: dark background, solid dim border, sound name shown dimly
-  - Active  : coloured background + glow, sound name bright, volume bar live
+  - Active  : coloured background + green border glow, emoji + sound name bright
 
 Each pad widget emits:
   - toggle_requested(pad_index)  when clicked on screen
@@ -29,6 +29,7 @@ class PadWidget(QWidget):
         self._colour = colour
         self._active = False
         self._label = ""
+        self._emoji = ""
         self._volume = 100
 
         self._build_ui()
@@ -37,26 +38,33 @@ class PadWidget(QWidget):
     def _build_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        layout.setSpacing(4)
+        layout.setSpacing(2)
 
         # Header row: pad label + edit button
         header = QHBoxLayout()
-        self._pad_label = QLabel(f"PAD {self._pad_index + 1} · KN {self._pad_index + 1}")
-        self._pad_label.setFont(QFont("Sans", 7, QFont.Bold))
+        self._pad_label = QLabel(f"PAD {self._pad_index + 1}")
+        self._pad_label.setFont(QFont("Sans", 9, QFont.Bold))
         header.addWidget(self._pad_label)
         header.addStretch()
 
         self._edit_btn = QPushButton("✎")
-        self._edit_btn.setFixedSize(20, 18)
+        self._edit_btn.setFixedSize(22, 20)
         self._edit_btn.setCursor(Qt.PointingHandCursor)
         self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
         header.addWidget(self._edit_btn)
         layout.addLayout(header)
 
+        # Emoji (large, centred)
+        self._emoji_label = QLabel("")
+        self._emoji_label.setFont(QFont("Noto Color Emoji", 28))
+        self._emoji_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self._emoji_label)
+
         # Sound name
         self._sound_label = QLabel("empty")
-        self._sound_label.setFont(QFont("Sans", 11, QFont.Bold))
+        self._sound_label.setFont(QFont("Sans", 13, QFont.Bold))
         self._sound_label.setWordWrap(True)
+        self._sound_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self._sound_label)
 
         layout.addStretch()
@@ -82,8 +90,10 @@ class PadWidget(QWidget):
         self._active = active
         self._apply_style(active=active, has_sound=bool(self._label))
 
-    def set_sound(self, label: str):
+    def set_sound(self, label: str, emoji: str = ""):
         self._label = label
+        self._emoji = emoji
+        self._emoji_label.setText(emoji if label else "")
         self._sound_label.setText(label or "empty")
         self._apply_style(active=self._active, has_sound=bool(label))
 
@@ -93,16 +103,16 @@ class PadWidget(QWidget):
 
     def _apply_style(self, active: bool, has_sound: bool):
         if active:
-            # Always white text — all accent colours are saturated enough to support it
             self.setStyleSheet(f"""
                 PadWidget {{
                     background: {self._colour};
                     border-radius: 10px;
-                    border: 3px solid white;
+                    border: 3px solid #50ff90;
                 }}
             """)
             self._pad_label.setStyleSheet("color: rgba(255,255,255,0.75); font-weight: bold;")
             self._sound_label.setStyleSheet("color: #ffffff;")
+            self._emoji_label.setStyleSheet("background: transparent;")
             self._volume_bar.setStyleSheet("""
                 QProgressBar { background: rgba(0,0,0,0.3); border-radius: 2px; border: none; }
                 QProgressBar::chunk { background: rgba(255,255,255,0.8); border-radius: 2px; }
@@ -117,6 +127,7 @@ class PadWidget(QWidget):
             """)
             self._pad_label.setStyleSheet("color: #7a78a0;")
             self._sound_label.setStyleSheet("color: #c0c0e0;")
+            self._emoji_label.setStyleSheet("background: transparent;")
             self._volume_bar.setStyleSheet("""
                 QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
                 QProgressBar::chunk { background: #5a5880; border-radius: 2px; }
@@ -131,6 +142,7 @@ class PadWidget(QWidget):
             """)
             self._pad_label.setStyleSheet("color: #3a3858;")
             self._sound_label.setStyleSheet("color: #3a3858;")
+            self._emoji_label.setStyleSheet("background: transparent;")
             self._volume_bar.setStyleSheet("""
                 QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
                 QProgressBar::chunk { background: #2e2d3e; border-radius: 2px; }

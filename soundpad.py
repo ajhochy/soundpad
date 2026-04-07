@@ -45,7 +45,7 @@ def main():
     from PyQt5.QtGui import QFont
     _font = app.font()
     _font.setFamilies(["Ubuntu", "Noto Sans", "Noto Color Emoji"])
-    _font.setPointSize(13)
+    _font.setPointSize(15)
     app.setFont(_font)
 
     config = Config()

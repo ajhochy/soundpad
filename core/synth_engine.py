@@ -270,3 +270,16 @@ GM_FAMILIES = [
     "Reed", "Pipe", "Synth Lead", "Synth Pad",
     "Synth Effects", "Ethnic", "Percussive", "Sound Effects",
 ]
+
+GM_FAMILY_EMOJI = [
+    "🎹", "🔔", "🎹", "🎸",
+    "🎸", "🎻", "🎻", "🎺",
+    "🎷", "🪈", "🎛", "🎛",
+    "✨", "🪘", "🥁", "💥",
+]
+
+
+def gm_family_emoji(bank: int, program: int) -> str:
+    """Return the emoji for a sound's GM family."""
+    family = program // 8 if bank == 0 else 14  # default to Percussive for non-GM banks
+    return GM_FAMILY_EMOJI[family % len(GM_FAMILY_EMOJI)]

@@ -21,15 +21,13 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
-from core.synth_engine import GM_FAMILIES
+from core.synth_engine import GM_FAMILIES, GM_FAMILY_EMOJI
 
-
-# One emoji per GM family
-FAMILY_EMOJI = ["🎹","🔔","🎹","🎸","🎸","🎻","🎻","🎺","🎷","🪈","🎹","🎹","✨","🪘","🥁","💥"]
+FAMILY_EMOJI = GM_FAMILY_EMOJI
 
 
 class PresetBrowser(QWidget):
-    sound_selected = pyqtSignal(int, str)   # pad_index, label
+    sound_selected = pyqtSignal(int, str, str)   # pad_index, label, emoji
 
     def __init__(self, synth, main_window, parent=None):
         super().__init__(parent)
@@ -208,7 +206,8 @@ class PresetBrowser(QWidget):
             entry["program"],
             entry["label"],
         )
-        self.sound_selected.emit(self._pad_index, entry["label"])
+        emoji = FAMILY_EMOJI[entry["gm_family"]]
+        self.sound_selected.emit(self._pad_index, entry["label"], emoji)
 
     def _go_back(self):
         self._main_window.show_main()
