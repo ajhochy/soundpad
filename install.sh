@@ -44,7 +44,7 @@ TARGET_DIR="/opt/soundpad"
 AUTOSTART_DIR="/home/$DESKTOP_USER/.config/autostart"
 APP_DIR="/home/$DESKTOP_USER/.local/share/applications"
 
-SSH_OPTS="-o StrictHostKeyChecking=no -o BatchMode=no"
+SSH_OPTS="-i $HOME/.ssh/id_soundpad -o StrictHostKeyChecking=no -o BatchMode=yes"
 
 _ssh()  { ssh $SSH_OPTS "$TARGET_HOST" "$@"; }
 _ssht() { ssh -t $SSH_OPTS "$TARGET_HOST" "$@"; }   # allocates a PTY (needed for sudo prompts)
