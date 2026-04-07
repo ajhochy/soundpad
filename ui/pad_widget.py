@@ -46,7 +46,7 @@ class PadWidget(QWidget):
         header.addStretch()
 
         self._edit_btn = QPushButton("✎")
-        self._edit_btn.setFixedSize(24, 22)
+        self._edit_btn.setFixedSize(36, 36)
         self._edit_btn.setCursor(Qt.PointingHandCursor)
         self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
         header.addWidget(self._edit_btn)
@@ -74,7 +74,9 @@ class PadWidget(QWidget):
         sound_pt = max(10, h // 9)
         self._pad_label.setFont(QFont("Sans", pad_pt, QFont.Bold))
         self._sound_label.setFont(QFont("Sans", sound_pt, QFont.Bold))
-        self._edit_btn.setFixedSize(max(22, h // 8), max(20, h // 9))
+        btn_size = max(32, h // 5)
+        self._edit_btn.setFixedSize(btn_size, btn_size)
+        self._edit_btn.setFont(QFont("Sans", max(12, h // 10)))
 
     def mousePressEvent(self, event):
         self.toggle_requested.emit(self._pad_index)
