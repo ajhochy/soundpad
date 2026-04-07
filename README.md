@@ -33,11 +33,12 @@ sudo apt install python3-pyqt5 python3-pip libfluidsynth-dev \
 
 # Python packages
 pip3 install pyFluidSynth python-rtmidi
+
+# Download soundfont packs (free, ~200 MB total, non-fatal if any fail)
+sudo bash download_soundfonts.sh
 ```
 
-### Soundfonts
-
-The app auto-loads any `.sf2` file found in `/usr/share/sounds/sf2/`. The `fluid-soundfont-gm` package above puts one there automatically, so you'll have sounds out of the box. Drop any additional `.sf2` files into that directory to add more instruments.
+`download_soundfonts.sh` fetches TimGM6mb, Arachno, SGM, Timbres of Heaven, and OPL-3 FM into `/usr/share/sounds/sf2/`. You can skip it — `fluid-soundfont-gm` from apt gives you a working GM set to start with. Any `.sf2` file in that directory is auto-loaded at startup.
 
 ## Run
 
