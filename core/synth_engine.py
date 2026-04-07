@@ -115,18 +115,27 @@ class SynthEngine:
                 if not clean:
                     continue
 
-                # GM family assignment:
-                #   bank 128     = standard percussion → Percussive (14)
-                #   bank 120/127 = GS alternate drum maps (some soundfonts use
-                #                  these instead of 128 for drum kits)
-                #   bank 64      = XG sound effects bank (Timbres of Heaven)
-                #   bank 0–127   = GM/XG/GS melodic variations; prog encodes family
-                if bank in (120, 127, 128):
-                    gm_family = 14   # Percussive
-                elif bank == 64:
-                    gm_family = 15   # Sound Effects
+                # GM family assignment — hybrid approach:
+                #   1. Bank 128 is always percussion (GM spec)
+                #   2. prog // 8 gives the correct GM family for banks 0–127
+                #   3. Name-based override only for unambiguous drum kit names
+                #      appearing on non-standard banks (e.g. "TR-808", "STANDARD 1")
+                if bank == 128:
+                    gm_family = 14
                 else:
                     gm_family = prog // 8
+                    # Override: if name clearly identifies a drum kit and bank
+                    # is not a melodic bank (some soundfonts use 120/126/127
+                    # for GS drum maps), reclassify as Percussive
+                    name_lower = name.lower()
+                    _drum_kit_names = {
+                        "standard", "room kit", "power kit", "electronic kit",
+                        "tr-808", "tr-909", "tr-707", "cr-78", "hip hop",
+                        "jungle kit", "techno kit", "dance kit", "house kit",
+                        "sfx kit", "brush kit",
+                    }
+                    if bank in (120, 126, 127) and any(k in name_lower for k in _drum_kit_names):
+                        gm_family = 14
 
                 self._catalogue.append({
                     "soundfont_path": sf_path,
