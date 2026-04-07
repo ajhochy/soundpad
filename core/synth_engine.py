@@ -19,11 +19,14 @@ PipeWire automatically.
 
 import ctypes
 import ctypes.util as _ctypes_util
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import fluidsynth
 from core.config import Config
+
+log = logging.getLogger("soundpad")
 
 _lib_path = _ctypes_util.find_library("fluidsynth") or "libfluidsynth.so.3"
 _fluid_lib = ctypes.CDLL(_lib_path)
@@ -44,7 +47,7 @@ class SynthEngine:
     def __init__(self, config: Config):
         self._config = config
         self._fs = fluidsynth.Synth()
-        self._fs.start(driver="jack")
+        self._fs.start(driver="pulseaudio")
 
         # Load all soundfonts; store path→id mapping
         self._sf_ids: dict[str, int] = {}
@@ -107,13 +110,64 @@ class SynthEngine:
                 name = (raw_name.decode("utf-8", errors="replace")
                         if raw_name else GM_PROGRAM_NAMES.get(prog, f"Program {prog}"))
 
+                # Skip internal/garbage presets (names that are just dashes or blanks)
+                clean = name.strip("-_ \t")
+                if not clean:
+                    continue
+
+                # GM family assignment — hybrid approach:
+                #   1. Bank 128 is always percussion (GM spec)
+                #   2. prog // 8 gives the correct GM family for banks 0–127
+                #   3. Name-based override only for unambiguous drum kit names
+                #      appearing on non-standard banks (e.g. "TR-808", "STANDARD 1")
+                if bank == 128:
+                    gm_family = 14
+                elif bank == 64:
+                    gm_family = 15  # XG sound effects bank (Timbres of Heaven)
+                else:
+                    gm_family = prog // 8
+                    name_lower = name.lower()
+
+                    # Split Piano (0) → Electric Piano (16) for progs 4-7:
+                    # EP1, EP2, Harpsichord, Clavinet — keep as Piano only
+                    # if the name explicitly says "piano" and isn't an EP
+                    if gm_family == 0 and prog >= 4:
+                        ep_keywords = {"electric piano", "e. piano", "ep ", "ep1", "ep2",
+                                       "rhodes", "wurli", "dx ", "dx7", "clav", "harpsi",
+                                       "honky", "tack", "stage"}
+                        acoustic_keywords = {"grand", "upright", "acoustic", "concert"}
+                        if any(k in name_lower for k in acoustic_keywords):
+                            pass  # keep as Piano
+                        else:
+                            gm_family = 16  # Electric Piano
+
+                    # Name-based overrides for instruments in the wrong family
+                    if gm_family in (0, 16) and "guitar" in name_lower:
+                        gm_family = 3
+                    if gm_family in (0, 16) and "bass" in name_lower and "contrabass" not in name_lower:
+                        gm_family = 4
+                    if gm_family in (0, 16) and any(k in name_lower for k in ("tb-303", "c64", "synth bass")):
+                        gm_family = 10  # Synth Lead
+                    if gm_family == 0 and any(k in name_lower for k in ("room", "standard 1", "standard 2", "standard 3")):
+                        gm_family = 14  # drum kit named wrongly
+
+                    # Drum kit override for GS alternate drum banks
+                    _drum_kit_names = {
+                        "standard", "room kit", "power kit", "electronic kit",
+                        "tr-808", "tr-909", "tr-707", "cr-78", "hip hop",
+                        "jungle kit", "techno kit", "dance kit", "house kit",
+                        "sfx kit", "brush kit",
+                    }
+                    if bank in (120, 126, 127) and any(k in name_lower for k in _drum_kit_names):
+                        gm_family = 14
+
                 self._catalogue.append({
                     "soundfont_path": sf_path,
                     "soundfont_name": sf_name,
                     "bank": bank,
                     "program": prog,
                     "label": name,
-                    "gm_family": prog // 8 if bank == 0 else 0,
+                    "gm_family": gm_family,
                 })
 
         self._catalogue.sort(key=lambda e: (e["gm_family"], e["label"]))
@@ -131,6 +185,7 @@ class SynthEngine:
         state = self._pads[pad_index]
         sfid = self._sf_ids.get(soundfont_path)
         if sfid is None:
+            log.warning("assign_pad %d: soundfont not found: %s", pad_index, soundfont_path)
             state.label = "[missing]"
             state.active = False
             return
@@ -265,4 +320,24 @@ GM_FAMILIES = [
     "Bass", "Strings", "Ensemble", "Brass",
     "Reed", "Pipe", "Synth Lead", "Synth Pad",
     "Synth Effects", "Ethnic", "Percussive", "Sound Effects",
+    "Electric Piano",   # index 16 — EP/Rhodes/Clav/Harpsichord split from Piano
 ]
+
+GM_FAMILY_EMOJI = [
+    "🎹", "🔔", "🎹", "🎸",
+    "🎸", "🎻", "🎻", "🎺",
+    "🎷", "🪈", "🎛", "🎛",
+    "✨", "🪘", "🥁", "💥",
+    "🪗",  # Electric Piano
+]
+
+
+def gm_family_emoji(bank: int, program: int) -> str:
+    """Return the emoji for a sound's GM family."""
+    if bank == 128:
+        family = 14  # percussion
+    elif program >= 4 and program <= 7 and bank in (0,):
+        family = 16  # Electric Piano split
+    else:
+        family = program // 8
+    return GM_FAMILY_EMOJI[family % len(GM_FAMILY_EMOJI)]

@@ -15,9 +15,12 @@ The handler reloads the MIDI map from Config on demand (called by
 SettingsDialog after the user saves new CC assignments).
 """
 
+import logging
 import threading
 import rtmidi
 from PyQt5.QtCore import QObject, pyqtSignal
+
+log = logging.getLogger("soundpad")
 
 
 class MidiSignals(QObject):

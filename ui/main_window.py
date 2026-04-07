@@ -27,6 +27,7 @@ from PyQt5.QtGui import QFont
 from ui.pad_widget import PadWidget
 from ui.preset_browser import PresetBrowser
 from ui.settings_dialog import SettingsDialog
+from core.synth_engine import gm_family_emoji
 
 
 class MainWindow(QMainWindow):
@@ -179,8 +180,8 @@ class MainWindow(QMainWindow):
     def _on_edit_pad(self, pad_index: int):
         self.show_preset_browser(pad_index)
 
-    def _on_sound_selected(self, pad_index: int, label: str):
-        self._pad_widgets[pad_index].set_sound(label)
+    def _on_sound_selected(self, pad_index: int, label: str, emoji: str):
+        self._pad_widgets[pad_index].set_sound(label, emoji)
         self.show_main()
 
     def _on_scene_selected(self, name: str):
@@ -268,7 +269,9 @@ class MainWindow(QMainWindow):
         for entry in scene["pads"]:
             idx = entry["pad"] - 1
             pw = self._pad_widgets[idx]
-            pw.set_sound(entry.get("label") or "")
+            label = entry.get("label") or ""
+            emoji = gm_family_emoji(entry.get("bank", 0), entry.get("program", 0)) if label else ""
+            pw.set_sound(label, emoji)
             pw.set_active(entry.get("active", False))
             pw.set_volume(entry.get("volume", 100))
         mv = scene.get("master_volume", 80)

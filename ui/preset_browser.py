@@ -17,19 +17,17 @@ Layout:
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QScrollArea, QGridLayout, QFrame
+    QScrollArea, QGridLayout, QFrame, QLineEdit
 )
 from PyQt5.QtCore import pyqtSignal, Qt
 from PyQt5.QtGui import QFont
-from core.synth_engine import GM_FAMILIES
+from core.synth_engine import GM_FAMILIES, GM_FAMILY_EMOJI
 
-
-# One emoji per GM family
-FAMILY_EMOJI = ["🎹","🔔","🎹","🎸","🎸","🎻","🎻","🎺","🎷","🪈","🎹","🎹","✨","🪘","🥁","💥"]
+FAMILY_EMOJI = GM_FAMILY_EMOJI
 
 
 class PresetBrowser(QWidget):
-    sound_selected = pyqtSignal(int, str)   # pad_index, label
+    sound_selected = pyqtSignal(int, str, str)   # pad_index, label, emoji
 
     def __init__(self, synth, main_window, parent=None):
         super().__init__(parent)
@@ -38,6 +36,7 @@ class PresetBrowser(QWidget):
         self._pad_index = 0
         self._active_family = None   # None = show all
         self._active_chip = None     # currently highlighted chip button
+        self._search_text = ""
         self._build_ui()
 
     def open_for_pad(self, pad_index: int):
@@ -45,6 +44,7 @@ class PresetBrowser(QWidget):
         self._header_label.setText(
             f"Choose sound for <b style='color:#a78bfa;'>Pad {pad_index + 1}</b>"
         )
+        self._search_box.clear()
         self._refresh_grid()
 
     def _build_ui(self):
@@ -66,6 +66,21 @@ class PresetBrowser(QWidget):
         header.addWidget(self._header_label)
         header.addStretch()
         layout.addLayout(header)
+
+        # Family filter chips
+        # Search box
+        self._search_box = QLineEdit()
+        self._search_box.setPlaceholderText("🔍  Search instruments...")
+        self._search_box.setStyleSheet("""
+            QLineEdit {
+                background: #1e1d2e; color: #ffffff;
+                border: 1px solid #3e3d5e; border-radius: 8px;
+                padding: 8px 14px; font-size: 14px;
+            }
+            QLineEdit:focus { border: 1px solid #a78bfa; }
+        """)
+        self._search_box.textChanged.connect(self._on_search)
+        layout.addWidget(self._search_box)
 
         # Family filter chips
         family_scroll = QScrollArea()
@@ -117,6 +132,10 @@ class PresetBrowser(QWidget):
     def _set_chip_inactive(self, btn: QPushButton):
         btn.setStyleSheet(self._CHIP_DEFAULT_STYLE)
 
+    def _on_search(self, text: str):
+        self._search_text = text.strip().lower()
+        self._refresh_grid()
+
     def _filter_family(self, family_index, chip_btn: QPushButton = None):
         if self._active_chip is not None:
             self._set_chip_inactive(self._active_chip)
@@ -136,6 +155,8 @@ class PresetBrowser(QWidget):
         catalogue = self._synth.catalogue
         if self._active_family is not None:
             catalogue = [e for e in catalogue if e["gm_family"] == self._active_family]
+        if self._search_text:
+            catalogue = [e for e in catalogue if self._search_text in e["label"].lower()]
 
         # Deduplicate by (label, soundfont_path) so identical names from
         # different soundfonts are both shown.
@@ -148,14 +169,15 @@ class PresetBrowser(QWidget):
                 unique.append(entry)
 
         if not unique:
-            empty_label = QLabel("No instruments found.\nTry installing fluid-soundfont-gm.")
+            msg = f"No results for \"{self._search_text}\"." if self._search_text else "No instruments found.\nTry installing fluid-soundfont-gm."
+            empty_label = QLabel(msg)
             empty_label.setAlignment(Qt.AlignCenter)
             empty_label.setWordWrap(True)
             empty_label.setStyleSheet("color: #a0a0c0; font-size: 13px; padding: 40px;")
             self._grid_layout.addWidget(empty_label, 0, 0, 1, 3)
             return
 
-        cols = 3
+        cols = 6
         for i, entry in enumerate(unique):
             row, col = divmod(i, cols)
             tile = self._make_tile(entry)
@@ -170,18 +192,18 @@ class PresetBrowser(QWidget):
         tile.setCursor(Qt.PointingHandCursor)
 
         layout = QVBoxLayout(tile)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(6, 8, 6, 8)
         layout.setAlignment(Qt.AlignCenter)
 
         emoji = FAMILY_EMOJI[entry["gm_family"]]
         emoji_label = QLabel(emoji)
-        emoji_label.setFont(QFont("Sans", 20))
+        emoji_label.setFont(QFont("Sans", 14))
         emoji_label.setAlignment(Qt.AlignCenter)
         emoji_label.setStyleSheet("background: transparent; border: none;")
         layout.addWidget(emoji_label)
 
         name_label = QLabel(entry["label"])
-        name_label.setFont(QFont("Sans", 10, QFont.Bold))
+        name_label.setFont(QFont("Sans", 8, QFont.Bold))
         name_label.setAlignment(Qt.AlignCenter)
         name_label.setWordWrap(True)
         name_label.setStyleSheet("color: #ffffff; background: transparent; border: none;")
@@ -208,7 +230,8 @@ class PresetBrowser(QWidget):
             entry["program"],
             entry["label"],
         )
-        self.sound_selected.emit(self._pad_index, entry["label"])
+        emoji = FAMILY_EMOJI[entry["gm_family"]]
+        self.sound_selected.emit(self._pad_index, entry["label"], emoji)
 
     def _go_back(self):
         self._main_window.show_main()

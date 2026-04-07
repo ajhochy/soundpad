@@ -4,24 +4,24 @@ pad_widget.py — a single pad tile in the 4x2 grid.
 Visual states:
   - Empty   : dark background, dashed border, "empty" label
   - Inactive: dark background, solid dim border, sound name shown dimly
-  - Active  : coloured background + glow, sound name bright, volume bar live
+  - Active  : bright green background + border, sound name bright
+
+Fonts scale with widget height. The edit button is absolutely positioned
+so it can be resized freely without layout constraints.
 
 Each pad widget emits:
   - toggle_requested(pad_index)  when clicked on screen
   - edit_requested(pad_index)    when the ✎ button is clicked
-
-The parent (MainWindow) connects these to the synth and preset browser.
-Volume bar updates live as the corresponding knob is turned.
 """
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar
-from PyQt5.QtCore import pyqtSignal, Qt
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QPushButton, QProgressBar
+from PyQt5.QtCore import pyqtSignal, Qt, QPoint
 from PyQt5.QtGui import QFont
 
 
 class PadWidget(QWidget):
-    toggle_requested = pyqtSignal(int)   # pad_index 0-based
-    edit_requested = pyqtSignal(int)     # pad_index 0-based
+    toggle_requested = pyqtSignal(int)
+    edit_requested = pyqtSignal(int)
 
     def __init__(self, pad_index: int, colour: str, parent=None):
         super().__init__(parent)
@@ -29,6 +29,7 @@ class PadWidget(QWidget):
         self._colour = colour
         self._active = False
         self._label = ""
+        self._emoji = ""
         self._volume = 100
 
         self._build_ui()
@@ -39,52 +40,66 @@ class PadWidget(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
         layout.setSpacing(4)
 
-        # Header row: pad label + edit button
-        header = QHBoxLayout()
-        self._pad_label = QLabel(f"PAD {self._pad_index + 1} · KN {self._pad_index + 1}")
-        self._pad_label.setFont(QFont("Sans", 7, QFont.Bold))
-        header.addWidget(self._pad_label)
-        header.addStretch()
+        self._pad_label = QLabel(f"PAD {self._pad_index + 1}")
+        self._pad_label.setFont(QFont("Sans", 9, QFont.Bold))
+        layout.addWidget(self._pad_label)
 
-        self._edit_btn = QPushButton("✎")
-        self._edit_btn.setFixedSize(20, 18)
-        self._edit_btn.setCursor(Qt.PointingHandCursor)
-        self._edit_btn.clicked.connect(lambda: self.edit_requested.emit(self._pad_index))
-        header.addWidget(self._edit_btn)
-        layout.addLayout(header)
-
-        # Sound name
         self._sound_label = QLabel("empty")
-        self._sound_label.setFont(QFont("Sans", 11, QFont.Bold))
+        self._sound_label.setFont(QFont("Sans", 12, QFont.Bold))
         self._sound_label.setWordWrap(True)
-        layout.addWidget(self._sound_label)
+        self._sound_label.setAlignment(Qt.AlignCenter)
+        layout.addWidget(self._sound_label, stretch=1)
 
-        layout.addStretch()
-
-        # Volume bar
         self._volume_bar = QProgressBar()
         self._volume_bar.setRange(0, 100)
         self._volume_bar.setValue(100)
         self._volume_bar.setTextVisible(False)
-        self._volume_bar.setFixedHeight(5)
+        self._volume_bar.setFixedHeight(6)
         layout.addWidget(self._volume_bar)
+
+        # Edit label — absolutely positioned, scales freely unlike QPushButton
+        self._edit_btn = QLabel("✏️", self)
+        self._edit_btn.setAlignment(Qt.AlignCenter)
+        self._edit_btn.setCursor(Qt.PointingHandCursor)
+        self._edit_btn.setStyleSheet("background: rgba(0,0,0,0.35); border-radius: 6px;")
 
         self.setCursor(Qt.PointingHandCursor)
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        h = self.height()
+        w = self.width()
+
+        self._pad_label.setFont(QFont("Sans", max(8, h // 14), QFont.Bold))
+        self._sound_label.setFont(QFont("Sans", max(10, h // 9), QFont.Bold))
+
+        # Absolutely position edit btn in top-right corner
+        btn_size = max(22, h // 6)
+        self._edit_btn.setFont(QFont("Noto Color Emoji", btn_size * 2 // 3))
+        self._edit_btn.setGeometry(w - btn_size - 6, 6, btn_size, btn_size)
+        self._edit_btn.raise_()
+
     def mousePressEvent(self, event):
-        self.toggle_requested.emit(self._pad_index)
+        if self._edit_btn.geometry().contains(event.pos()):
+            self.edit_requested.emit(self._pad_index)
+        else:
+            self.toggle_requested.emit(self._pad_index)
 
     # ------------------------------------------------------------------
-    # Public update API (called from MainWindow)
+    # Public update API
     # ------------------------------------------------------------------
 
     def set_active(self, active: bool):
         self._active = active
         self._apply_style(active=active, has_sound=bool(self._label))
 
-    def set_sound(self, label: str):
+    def set_sound(self, label: str, emoji: str = ""):
         self._label = label
-        self._sound_label.setText(label or "empty")
+        self._emoji = emoji
+        if label:
+            self._sound_label.setText(f"{emoji} {label}" if emoji else label)
+        else:
+            self._sound_label.setText("empty")
         self._apply_style(active=self._active, has_sound=bool(label))
 
     def set_volume(self, volume: int):
@@ -93,19 +108,19 @@ class PadWidget(QWidget):
 
     def _apply_style(self, active: bool, has_sound: bool):
         if active:
-            # Always white text — all accent colours are saturated enough to support it
             self.setStyleSheet(f"""
                 PadWidget {{
-                    background: {self._colour};
+                    background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
+                        stop:0 #28a85a, stop:1 #1a6b3a);
                     border-radius: 10px;
-                    border: 3px solid white;
+                    border: 3px solid #6effa0;
                 }}
             """)
-            self._pad_label.setStyleSheet("color: rgba(255,255,255,0.75); font-weight: bold;")
+            self._pad_label.setStyleSheet("color: rgba(255,255,255,0.8); font-weight: bold;")
             self._sound_label.setStyleSheet("color: #ffffff;")
             self._volume_bar.setStyleSheet("""
-                QProgressBar { background: rgba(0,0,0,0.3); border-radius: 2px; border: none; }
-                QProgressBar::chunk { background: rgba(255,255,255,0.8); border-radius: 2px; }
+                QProgressBar { background: rgba(0,0,0,0.3); border-radius: 3px; border: none; }
+                QProgressBar::chunk { background: #6effa0; border-radius: 3px; }
             """)
         elif has_sound:
             self.setStyleSheet("""
@@ -118,8 +133,8 @@ class PadWidget(QWidget):
             self._pad_label.setStyleSheet("color: #7a78a0;")
             self._sound_label.setStyleSheet("color: #c0c0e0;")
             self._volume_bar.setStyleSheet("""
-                QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
-                QProgressBar::chunk { background: #5a5880; border-radius: 2px; }
+                QProgressBar { background: #0d0c18; border-radius: 3px; border: none; }
+                QProgressBar::chunk { background: #5a5880; border-radius: 3px; }
             """)
         else:
             self.setStyleSheet("""
@@ -132,6 +147,6 @@ class PadWidget(QWidget):
             self._pad_label.setStyleSheet("color: #3a3858;")
             self._sound_label.setStyleSheet("color: #3a3858;")
             self._volume_bar.setStyleSheet("""
-                QProgressBar { background: #0d0c18; border-radius: 2px; border: none; }
-                QProgressBar::chunk { background: #2e2d3e; border-radius: 2px; }
+                QProgressBar { background: #0d0c18; border-radius: 3px; border: none; }
+                QProgressBar::chunk { background: #2e2d3e; border-radius: 3px; }
             """)
