@@ -34,6 +34,7 @@ class SettingsDialog(QDialog):
         self.setMinimumWidth(460)
         self._active_learn_btn: Optional[QPushButton] = None
         self._midi.signals.learn_captured.connect(self._on_learn_captured)
+        self._midi.signals.learn_timeout.connect(self._on_learn_timeout)
         self._build_ui()
 
     def _build_ui(self):
@@ -108,7 +109,7 @@ class SettingsDialog(QDialog):
         self._active_learn_btn = btn
         btn.setText("Waiting…")
         btn.setEnabled(False)
-        self._midi.set_learn_mode(True)
+        self._midi.start_learn()
 
     def _on_learn_captured(self, msg_type: int, channel: int, byte1: int):
         """Receive the captured MIDI message and update the mapping."""
@@ -135,6 +136,14 @@ class SettingsDialog(QDialog):
             self._working_map["master_fader"]["channel"] = channel
             self._working_map["master_fader"]["cc"] = byte1
             self._fader_label.setText(f"Channel: {channel + 1}   CC: {byte1}")
+
+    def _on_learn_timeout(self):
+        """Called when learn mode expires with no MIDI input — restore button state."""
+        if self._active_learn_btn is not None:
+            self._active_learn_btn.setText("Learn")
+            self._active_learn_btn.setEnabled(True)
+            self._active_learn_btn = None
+        self._learning_target = None
 
     def _reset_defaults(self):
         from core.config import DEFAULT_MIDI_MAP
