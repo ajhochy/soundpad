@@ -83,6 +83,7 @@ class SynthEngine:
 
         _lib = _fluid_lib
         _lib.fluid_synth_get_sfont_by_id.restype = ctypes.c_void_p
+        _lib.fluid_sfont_iteration_start.restype = None   # void
         _lib.fluid_sfont_iteration_next.restype = ctypes.c_void_p
         _lib.fluid_preset_get_name.restype = ctypes.c_char_p
         _lib.fluid_preset_get_banknum.restype = ctypes.c_int
