@@ -19,11 +19,14 @@ PipeWire automatically.
 
 import ctypes
 import ctypes.util as _ctypes_util
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import fluidsynth
 from core.config import Config
+
+log = logging.getLogger("soundpad")
 
 _lib_path = _ctypes_util.find_library("fluidsynth") or "libfluidsynth.so.3"
 _fluid_lib = ctypes.CDLL(_lib_path)
@@ -44,7 +47,7 @@ class SynthEngine:
     def __init__(self, config: Config):
         self._config = config
         self._fs = fluidsynth.Synth()
-        self._fs.start(driver="jack")
+        self._fs.start(driver="pulseaudio")
 
         # Load all soundfonts; store path→id mapping
         self._sf_ids: dict[str, int] = {}
@@ -131,6 +134,7 @@ class SynthEngine:
         state = self._pads[pad_index]
         sfid = self._sf_ids.get(soundfont_path)
         if sfid is None:
+            log.warning("assign_pad %d: soundfont not found: %s", pad_index, soundfont_path)
             state.label = "[missing]"
             state.active = False
             return

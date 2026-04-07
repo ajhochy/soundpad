@@ -11,6 +11,17 @@ can connect to the system audio graph.
 """
 
 import sys
+import os
+import logging
+
+logging.basicConfig(
+    filename="/tmp/soundpad.log",
+    level=logging.DEBUG,
+    format="%(asctime)s %(levelname)s %(message)s",
+    force=True,
+)
+log = logging.getLogger("soundpad")
+
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from core.config import Config
 from core.synth_engine import SynthEngine
@@ -20,6 +31,12 @@ from ui.main_window import MainWindow
 
 
 def main():
+    log.info("=== SoundPad starting ===")
+    log.info("JACK_NO_AUDIO_RESERVATION=%s", os.environ.get("JACK_NO_AUDIO_RESERVATION"))
+    log.info("LD_LIBRARY_PATH=%s", os.environ.get("LD_LIBRARY_PATH"))
+    log.info("XDG_RUNTIME_DIR=%s", os.environ.get("XDG_RUNTIME_DIR"))
+    log.info("DISPLAY=%s WAYLAND_DISPLAY=%s", os.environ.get("DISPLAY"), os.environ.get("WAYLAND_DISPLAY"))
+
     app = QApplication(sys.argv)
     app.setApplicationName("SoundPad")
     app.setStyle("Fusion")
@@ -32,9 +49,13 @@ def main():
     app.setFont(_font)
 
     config = Config()
+    log.info("Config loaded. soundfont_dir=%s", config.soundfont_dir)
     try:
+        log.info("Starting SynthEngine...")
         synth = SynthEngine(config)
+        log.info("SynthEngine started. catalogue size=%d", len(synth.catalogue))
     except Exception as exc:
+        log.exception("Could not start audio engine")
         print(f"ERROR: Could not start audio engine: {exc}", file=sys.stderr)
         QMessageBox.critical(
             None,
@@ -55,7 +76,12 @@ def main():
 
     # Start MIDI listening — update status indicator after start() so
     # is_connected() reflects the real connection state
+    import rtmidi
+    _tmp_in = rtmidi.MidiIn()
+    log.info("Available MIDI ports: %s", _tmp_in.get_ports())
+    del _tmp_in
     midi.start()
+    log.info("MIDI started. connected=%s", midi.is_connected())
     window.update_midi_status(midi.is_connected())
 
     exit_code = app.exec_()

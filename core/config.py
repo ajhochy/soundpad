@@ -6,7 +6,7 @@ Manages two JSON files in ~/.config/soundpad/:
   - (scenes stored separately in scene_manager.py)
 
 Also defines all hard-coded defaults for the Novation Launchkey MK3 49:
-  - Pads 1-8 : MIDI channel 9 (0-indexed = ch 10), notes 96-103 (Session mode)
+  - Pads 1-8 : MIDI channel 9 (0-indexed = ch 10), notes 40-47 (Drum mode)
   - Knobs 1-8: MIDI channel 0 (0-indexed = ch 1), CC 21-28
   - Fader     : MIDI channel 0 (0-indexed = ch 1), CC 9
 
@@ -26,7 +26,7 @@ NUM_PADS = 8
 
 DEFAULT_MIDI_MAP = {
     "pads": [
-        {"pad": i + 1, "channel": 9, "note": 96 + i}
+        {"pad": i + 1, "channel": 9, "note": 40 + i}
         for i in range(NUM_PADS)
     ],
     "knobs": [
