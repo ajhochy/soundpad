@@ -11,7 +11,7 @@ can connect to the system audio graph.
 """
 
 import sys
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 from core.config import Config
 from core.synth_engine import SynthEngine
 from core.scene_manager import SceneManager
@@ -24,8 +24,26 @@ def main():
     app.setApplicationName("SoundPad")
     app.setStyle("Fusion")
 
+    # Set global font: larger size + emoji fallback
+    from PyQt5.QtGui import QFont
+    _font = app.font()
+    _font.setFamilies(["Ubuntu", "Noto Sans", "Noto Color Emoji"])
+    _font.setPointSize(13)
+    app.setFont(_font)
+
     config = Config()
-    synth = SynthEngine(config)
+    try:
+        synth = SynthEngine(config)
+    except Exception as exc:
+        print(f"ERROR: Could not start audio engine: {exc}", file=sys.stderr)
+        QMessageBox.critical(
+            None,
+            "Audio Engine Error",
+            "Could not start audio engine.\n\n"
+            "Make sure the Launchkey is plugged in and PipeWire/JACK is running, "
+            "then try again.",
+        )
+        sys.exit(1)
     scenes = SceneManager(config)
     midi = MidiHandler(config)
 
@@ -35,8 +53,10 @@ def main():
     # Restore last scene
     scenes.restore_last(synth, window)
 
-    # Start MIDI listening
+    # Start MIDI listening — update status indicator after start() so
+    # is_connected() reflects the real connection state
     midi.start()
+    window.update_midi_status(midi.is_connected())
 
     exit_code = app.exec_()
 
