@@ -177,7 +177,7 @@ class PresetBrowser(QWidget):
             self._grid_layout.addWidget(empty_label, 0, 0, 1, 3)
             return
 
-        cols = 3
+        cols = 6
         for i, entry in enumerate(unique):
             row, col = divmod(i, cols)
             tile = self._make_tile(entry)
@@ -192,18 +192,18 @@ class PresetBrowser(QWidget):
         tile.setCursor(Qt.PointingHandCursor)
 
         layout = QVBoxLayout(tile)
-        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setContentsMargins(6, 8, 6, 8)
         layout.setAlignment(Qt.AlignCenter)
 
         emoji = FAMILY_EMOJI[entry["gm_family"]]
         emoji_label = QLabel(emoji)
-        emoji_label.setFont(QFont("Sans", 20))
+        emoji_label.setFont(QFont("Sans", 14))
         emoji_label.setAlignment(Qt.AlignCenter)
         emoji_label.setStyleSheet("background: transparent; border: none;")
         layout.addWidget(emoji_label)
 
         name_label = QLabel(entry["label"])
-        name_label.setFont(QFont("Sans", 10, QFont.Bold))
+        name_label.setFont(QFont("Sans", 8, QFont.Bold))
         name_label.setAlignment(Qt.AlignCenter)
         name_label.setWordWrap(True)
         name_label.setStyleSheet("color: #ffffff; background: transparent; border: none;")
