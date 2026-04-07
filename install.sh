@@ -39,7 +39,7 @@ _sudo "tee $AUTOSTART_DIR/soundpad.desktop > /dev/null << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=SoundPad
-Exec=pw-jack /opt/soundpad/venv/bin/python3 /opt/soundpad/soundpad.py
+Exec=/opt/soundpad/venv/bin/python3 /opt/soundpad/soundpad.py
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
@@ -47,7 +47,22 @@ EOF"
 _sudo "chown -R kids:kids $AUTOSTART_DIR"
 _sudo "chmod -R 755 $TARGET_DIR"
 
+echo "==> Installing dock launcher..."
+_sudo "mkdir -p /home/kids/.local/share/applications"
+_sudo "tee /home/kids/.local/share/applications/soundpad.desktop > /dev/null << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=SoundPad
+Comment=Play sounds with your keyboard
+Exec=/opt/soundpad/venv/bin/python3 /opt/soundpad/soundpad.py
+Icon=audio-x-generic
+Terminal=false
+Categories=Audio;Music;Education;
+StartupNotify=true
+EOF"
+_sudo "chown kids:kids /home/kids/.local/share/applications/soundpad.desktop"
+
 echo ""
 echo "✓ SoundPad installed. It will auto-launch next time kids logs in."
 echo "  To test now: ssh into the machine and run:"
-echo "  sudo -u kids pw-jack /opt/soundpad/venv/bin/python3 /opt/soundpad/soundpad.py"
+echo "  sudo -u kids DISPLAY=:0 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/run/user/1001 /opt/soundpad/venv/bin/python3 /opt/soundpad/soundpad.py"
