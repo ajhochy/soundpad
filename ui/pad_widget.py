@@ -72,9 +72,11 @@ class PadWidget(QWidget):
         h = self.height()
         pad_pt = max(8, h // 14)
         sound_pt = max(10, h // 9)
+        btn_pt = max(14, h // 8)
         self._pad_label.setFont(QFont("Sans", pad_pt, QFont.Bold))
         self._sound_label.setFont(QFont("Sans", sound_pt, QFont.Bold))
-        self._edit_btn.setFont(QFont("Sans", max(14, h // 8)))
+        self._edit_btn.setFont(QFont("Sans", btn_pt))
+        self._edit_btn.updateGeometry()
 
     def mousePressEvent(self, event):
         self.toggle_requested.emit(self._pad_index)
