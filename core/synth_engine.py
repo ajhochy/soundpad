@@ -129,16 +129,11 @@ class SynthEngine:
                     name_lower = name.lower()
 
                     # Split Piano (0) → Electric Piano (16) for progs 4-7:
-                    # EP1, EP2, Harpsichord, Clavinet — keep as Piano only
-                    # if the name explicitly says "piano" and isn't an EP
+                    # Move everything in that range to Electric Piano unless
+                    # the name clearly indicates an acoustic/grand piano.
                     if gm_family == 0 and prog >= 4:
-                        ep_keywords = {"electric piano", "e. piano", "ep ", "ep1", "ep2",
-                                       "rhodes", "wurli", "dx ", "dx7", "clav", "harpsi",
-                                       "honky", "tack", "stage"}
                         acoustic_keywords = {"grand", "upright", "acoustic", "concert"}
-                        if any(k in name_lower for k in acoustic_keywords):
-                            pass  # keep as Piano
-                        else:
+                        if not any(k in name_lower for k in acoustic_keywords):
                             gm_family = 16  # Electric Piano
 
                     # Name-based overrides for instruments in the wrong family
@@ -336,7 +331,9 @@ def gm_family_emoji(bank: int, program: int) -> str:
     """Return the emoji for a sound's GM family."""
     if bank == 128:
         family = 14  # percussion
-    elif program >= 4 and program <= 7 and bank in (0,):
+    elif bank == 64:
+        family = 15  # XG sound effects (Timbres of Heaven)
+    elif program >= 4 and program <= 7 and bank == 0:
         family = 16  # Electric Piano split
     else:
         family = program // 8
