@@ -1,7 +1,7 @@
 # SoundPad
 
-A simple, child-friendly soundfont player for the **Novation Launchkey MK3 49**.
-Replaces QSynth with an interface a kid can use without help.
+A simple, child-friendly soundfont player for MIDI keyboards.
+Designed for the Novation Launchkey MK3 49, but works with any MIDI keyboard via the built-in remap.
 
 ## What it does
 
@@ -12,7 +12,50 @@ Replaces QSynth with an interface a kid can use without help.
 - **Fader controls master volume**
 - **Save/load named scenes** — "School Practice", "Fun Sounds", etc.
 - **Instrument browser** — search and filter 1000+ sounds across all loaded soundfonts
-- **Auto-launches on login**
+- **Auto-launches on login** (optional)
+
+## Requirements
+
+- Ubuntu 22.04+ (or any Linux with PipeWire and PulseAudio support)
+- A USB MIDI keyboard (any device works — remap controls in ⚙ Settings)
+- Python 3.10+
+
+## Install
+
+```bash
+git clone https://github.com/ajhochy/soundpad.git
+cd soundpad
+
+# System dependencies
+sudo apt install python3-pyqt5 python3-pip libfluidsynth-dev \
+    fluid-soundfont-gm fluid-soundfont-gs \
+    fonts-noto fonts-noto-color-emoji
+
+# Python packages
+pip3 install pyFluidSynth python-rtmidi
+```
+
+### Soundfonts
+
+The app auto-loads any `.sf2` file found in `/usr/share/sounds/sf2/`. The `fluid-soundfont-gm` package above puts one there automatically, so you'll have sounds out of the box. Drop any additional `.sf2` files into that directory to add more instruments.
+
+## Run
+
+```bash
+python3 soundpad.py
+```
+
+## MIDI defaults (Launchkey MK3 49 — Drum mode)
+
+| Control | MIDI message | Action |
+|---------|-------------|--------|
+| Pads 1–8 | Note-on Ch 10, notes 40–47 | Toggle pad on/off |
+| Knobs 1–8 | CC 21–28, Ch 1 | Per-pad volume |
+| Fader | CC 9, Ch 1 | Master volume |
+
+> **Launchkey note:** the pads must be in **Drum mode** to send notes 40–47. Session mode sends 96–103 instead.
+
+All mappings are remappable via ⚙ Settings > Learn — so any MIDI controller will work.
 
 ## Stack
 
@@ -39,67 +82,16 @@ ui/
   settings_dialog.py   MIDI remap (⚙ button)
 ```
 
-## Install on a target Ubuntu machine
+## Remote deployment
+
+`install.sh` deploys SoundPad to a remote Ubuntu machine over SSH — useful for setting it up on a separate computer (e.g. a shared family PC or Raspberry Pi) from your own machine:
 
 ```bash
 bash install.sh user@host [desktop-user]
+
+# Examples:
+bash install.sh aj@192.168.0.50 kids    # deploy to "kids" account on a remote machine
+bash install.sh pi@raspberrypi.local pi
 ```
 
-**Examples:**
-```bash
-bash install.sh aj@192.168.0.50 kids    # deploy to "kids" account
-bash install.sh pi@raspberrypi.local pi  # Raspberry Pi
-```
-
-Or use environment variables:
-```bash
-export SOUNDPAD_HOST=aj@192.168.0.50
-export SOUNDPAD_USER=kids
-bash install.sh
-```
-
-`install.sh` will:
-1. Copy app files to `/opt/soundpad/` on the target machine
-2. Install system dependencies via `apt` (PyQt5, FluidSynth, fonts)
-3. Create a Python venv and install Python packages
-4. Download soundfonts into `/usr/share/sounds/sf2/` (failures are non-fatal — the app works with any soundfont)
-5. Set up autostart for the desktop user
-6. Install an app launcher icon in the applications menu
-
-**Requirements on this machine:** `ssh`, `rsync`
-**Requirements on target:** Ubuntu 22.04+, PipeWire with PulseAudio support
-
-SSH key auth is recommended: `ssh-copy-id user@host`
-
-## Manual run (for testing)
-
-```bash
-python3 soundpad.py
-```
-
-## Manual install (no install.sh)
-
-```bash
-# System dependencies
-sudo apt install python3-pyqt5 python3-pip libfluidsynth-dev \
-    fluid-soundfont-gm fluid-soundfont-gs \
-    fonts-noto fonts-noto-color-emoji
-
-# Python packages
-pip3 install pyFluidSynth python-rtmidi PyQt5
-```
-
-Soundfonts go in `/usr/share/sounds/sf2/` (any `.sf2` file is auto-loaded).
-
-## MIDI defaults (Launchkey MK3 49 — Drum mode)
-
-| Control | MIDI message | Action |
-|---------|-------------|--------|
-| Pads 1–8 | Note-on Ch 10, notes 40–47 (Drum mode) | Toggle pad on/off |
-| Knobs 1–8 | CC 21–28, Ch 1 | Per-pad volume |
-| Fader | CC 9, Ch 1 | Master volume |
-
-All mappings are remappable via ⚙ Settings > Learn.
-
-> **Note:** The Launchkey must be in **Drum mode** for the pads to send notes 40–47.
-> In Session mode the pads send notes 96–103, which can be remapped in Settings.
+It copies the app, installs dependencies, downloads additional soundfonts, sets up autostart, and installs an app launcher icon. SSH key auth is recommended: `ssh-copy-id user@host`.
