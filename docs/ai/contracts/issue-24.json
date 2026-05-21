@@ -1,0 +1,30 @@
+{
+  "issue": 24,
+  "title": "chore: install mido and set up pytest test scaffolding",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "mido importable in the project Python environment",
+      "test_cmd": "python3 -c 'import mido; print(mido.__version__)'",
+      "expect": "non-empty version string, exit 0"
+    },
+    {
+      "id": "ac-2",
+      "text": "pytest --collect-only exits 0",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest --collect-only",
+      "expect": "exit 0"
+    },
+    {
+      "id": "ac-3",
+      "text": "requirements.txt includes mido>=1.3",
+      "test_cmd": "grep -E '^mido>=1\\.3' requirements.txt",
+      "expect": "match, exit 0"
+    },
+    {
+      "id": "ac-4",
+      "text": "tests/__init__.py and tests/conftest.py exist",
+      "test_cmd": "test -f tests/__init__.py && test -f tests/conftest.py && echo OK",
+      "expect": "OK"
+    }
+  ]
+}
