@@ -1,0 +1,30 @@
+{
+  "issue": 31,
+  "title": "feat: implement PianoRollWidget QPainter rendering in ui/piano_roll_widget.py",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "Widget renders without crash (qtbot smoke)",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_piano_roll_widget.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "set_state() with a note event triggers visual update without crash",
+      "test_cmd": "see test_widget_set_state_does_not_crash",
+      "expect": "no exception"
+    },
+    {
+      "id": "ac-3",
+      "text": "Layout recomputes on resize",
+      "test_cmd": "see test_widget_resize_recomputes_layout",
+      "expect": "_layout has 49 entries after resize"
+    },
+    {
+      "id": "ac-4",
+      "text": "Headless screenshot artefact saved",
+      "test_cmd": "ls tests/smoke/_artifacts/piano_roll.png",
+      "expect": "PNG file > 0 bytes"
+    }
+  ]
+}
