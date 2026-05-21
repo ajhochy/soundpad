@@ -112,3 +112,186 @@ def load_midi_file(path):
 
     events.sort(key=lambda e: e[0])
     return events
+
+
+# ---------------------------------------------------------------------------
+# Qt imports — only needed for MidiFilePlayer (kept separate from pure parsing)
+# ---------------------------------------------------------------------------
+
+from PyQt5.QtCore import QObject, QTimer, pyqtSignal
+from core.note_matcher import MatchResult, check, all_required_pressed
+
+
+class _PlayerSignals(QObject):
+    """Qt signal container for MidiFilePlayer (QObject subclass required for signals)."""
+    note_on = pyqtSignal(int, int)         # note (0-127), velocity (0-127)
+    note_off = pyqtSignal(int)             # note (0-127)
+    playback_tick = pyqtSignal(int, list)  # clock_us, upcoming_notes
+    waiting_for = pyqtSignal(list)         # list[int] — notes that must be pressed
+    song_finished = pyqtSignal()
+
+
+class MidiFilePlayer:
+    """
+    Playback engine for a single MIDI file.
+
+    Owns a QTimer (16ms / ~60fps). Each tick advances the playback clock
+    by 16ms x speed_multiplier microseconds.
+
+    Free mode:   notes fire automatically; note_on/note_off signals emitted.
+    Waiting mode: clock pauses when required notes arrive; resumes when all
+                  are pressed via note_pressed().
+
+    Usage:
+        player = MidiFilePlayer()
+        player.signals.note_on.connect(synth.practice_note_on)
+        player.load("/path/to/song.mid")
+        player.set_mode("waiting")
+        player.play()
+    """
+
+    TICK_MS = 16              # timer interval (ms) -> ~60fps
+    LOOKAHEAD_US = 3_000_000  # 3 seconds of upcoming notes sent to widget
+
+    def __init__(self):
+        self.signals = _PlayerSignals()
+        self._events = []
+        self._clock_us = 0
+        self._event_idx = 0
+        self._speed = 1.0
+        self._mode = "free"
+        self._waiting_notes = set()
+        self._pressed_notes = set()
+
+        self._timer = QTimer()
+        self._timer.setInterval(self.TICK_MS)
+        self._timer.timeout.connect(self._tick)
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    @property
+    def clock_us(self):
+        return self._clock_us
+
+    @property
+    def is_playing(self):
+        return self._timer.isActive()
+
+    def load(self, path):
+        """Parse a MIDI file and reset playback to the start."""
+        self.stop()
+        self._events = load_midi_file(path)
+
+    def play(self):
+        """Start or resume playback."""
+        if self._events:
+            self._timer.start()
+
+    def pause(self):
+        """Pause playback without resetting the clock."""
+        self._timer.stop()
+
+    def stop(self):
+        """Stop playback and reset clock to zero."""
+        self._timer.stop()
+        self._clock_us = 0
+        self._event_idx = 0
+        self._waiting_notes.clear()
+        self._pressed_notes.clear()
+
+    def set_speed(self, percent):
+        """Set playback speed. percent=100 -> real time. Clamped to 25-400."""
+        self._speed = max(0.25, min(4.0, percent / 100.0))
+
+    def set_mode(self, mode):
+        """Set mode: 'free' or 'waiting'. Takes effect immediately."""
+        self._mode = mode.lower()
+        if self._mode == "free":
+            self._waiting_notes.clear()
+
+    def note_pressed(self, note, velocity):
+        """
+        Called by PracticeWindow when a live MIDI key is pressed.
+
+        In waiting mode: checks the note against required notes.
+          - HIT  -> removes note from waiting set; resumes timer if set is now empty;
+                   emits note_on so FluidSynth plays the sound.
+          - MISS -> returns MISS; caller (PracticeWindow) handles red flash.
+        In free mode: returns NOT_YET (live notes are displayed by PracticeWindow directly).
+        """
+        self._pressed_notes.add(note)
+
+        if self._mode == "waiting" and self._waiting_notes:
+            result = check(note, self._waiting_notes)
+            if result == MatchResult.HIT:
+                self._waiting_notes.discard(note)
+                self.signals.note_on.emit(note, velocity)
+                if not self._waiting_notes:
+                    self._timer.start()
+            return result
+
+        return MatchResult.NOT_YET
+
+    def note_released(self, note):
+        """Called by PracticeWindow when a live MIDI key is released."""
+        self._pressed_notes.discard(note)
+        self.signals.note_off.emit(note)
+
+    def _upcoming_snapshot(self):
+        """Return the current lookahead window of upcoming note events."""
+        return [
+            e for e in self._events[self._event_idx:]
+            if e[0] <= self._clock_us + self.LOOKAHEAD_US
+        ]
+
+    # ------------------------------------------------------------------
+    # Timer tick (private)
+    # ------------------------------------------------------------------
+
+    def _tick(self):
+        delta_us = int(self.TICK_MS * 1_000 * self._speed)
+        self._clock_us += delta_us
+
+        if self._mode == "waiting":
+            self._process_waiting_tick()
+        else:
+            self._process_free_tick()
+
+        # Check for end of song
+        if self._event_idx >= len(self._events):
+            self._timer.stop()
+            self.signals.song_finished.emit()
+            return
+
+        upcoming = [
+            e for e in self._events[self._event_idx:]
+            if e[0] <= self._clock_us + self.LOOKAHEAD_US
+        ]
+        self.signals.playback_tick.emit(self._clock_us, upcoming)
+
+    def _process_free_tick(self):
+        """Fire note events whose time has arrived (free mode)."""
+        while (self._event_idx < len(self._events) and
+               self._events[self._event_idx][0] <= self._clock_us):
+            ts_us, note, vel, dur_us = self._events[self._event_idx]
+            self._event_idx += 1
+            self.signals.note_on.emit(note, vel)
+            delay_ms = max(50, dur_us // 1_000)
+            QTimer.singleShot(delay_ms, lambda n=note: self.signals.note_off.emit(n))
+
+    def _process_waiting_tick(self):
+        """
+        Collect notes whose time has arrived, pause the clock, and emit
+        waiting_for with the full set of notes that must be pressed.
+        """
+        while (self._event_idx < len(self._events) and
+               self._events[self._event_idx][0] <= self._clock_us):
+            ts_us, note, vel, dur_us = self._events[self._event_idx]
+            self._event_idx += 1
+            self._waiting_notes.add(note)
+
+        if self._waiting_notes:
+            self._timer.stop()
+            self.signals.waiting_for.emit(list(self._waiting_notes))
