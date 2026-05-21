@@ -1,0 +1,24 @@
+{
+  "issue": 29,
+  "title": "feat: add practice channel methods to SynthEngine",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_synth_engine_practice.py — all tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_synth_engine_practice.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "init_practice_channel does nothing when no soundfonts loaded",
+      "test_cmd": "see test_init_practice_channel_does_nothing_when_no_soundfonts",
+      "expect": "program_select not called"
+    },
+    {
+      "id": "ac-3",
+      "text": "Existing SynthEngine behaviour unchanged",
+      "test_cmd": "no other tests fail",
+      "expect": "no regression"
+    }
+  ]
+}
