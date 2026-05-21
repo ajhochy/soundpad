@@ -29,3 +29,23 @@
 **Decision:** Install `fluid-synth` via Homebrew on macOS dev box; set `DYLD_LIBRARY_PATH=/opt/homebrew/lib`. Tests of synth_engine still patch `fluidsynth.Synth` to avoid touching audio hardware.
 
 **Consequences:** Tests run identically on Linux (system lib found automatically) and on macOS (with the env var). No code changes required to synth_engine.
+
+## 2026-05-20 — Sync MidiFilePlayer mode to mode combo on PracticeWindow init
+
+**Context:** `QComboBox.currentTextChanged` does NOT fire when `setCurrentText()` is called with the value already selected. The combo defaults to "Waiting" at construction time, so the player would stay in its constructor-default "free" mode until the user manually toggles to "Free" and back.
+
+**Alternative considered:** Set the combo to "Free" first then "Waiting" so the change fires. Brittle.
+
+**Decision:** Explicitly call `self._player.set_mode(self._mode_combo.currentText().lower())` at the end of `PracticeWindow.__init__` after wiring. Backed by a dedicated regression test `test_player_mode_matches_combo_default_on_init`.
+
+**Consequences:** Practice Mode now actually starts in Waiting mode by default, matching the visible UI state. Two-line fix in `practice_window.py`.
+
+## 2026-05-20 — Run targets Python 3.10+
+
+**Context:** Existing `core/scene_manager.py` uses `dict | None` type unions, requiring Python 3.10+. Local macOS dev box had Python 3.9.6 which broke `from core.scene_manager import SceneManager`. Ubuntu 24.04 target ships Python 3.12.
+
+**Alternative considered:** Add `from __future__ import annotations` to `scene_manager.py`. Out of scope for Practice Mode and risks behavioural change elsewhere.
+
+**Decision:** Recreate local `.venv` against `python3.12` from Homebrew. Run-state documented in `docs/ai/testing-guide.md` and `AGENTS.md`.
+
+**Consequences:** Project effectively requires Python 3.10+ — already true for the target deployment. Local dev box matches target now.

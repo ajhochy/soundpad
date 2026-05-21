@@ -55,6 +55,12 @@ class PracticeWindow(QMainWindow):
         # Reserve FluidSynth channel 15 with Grand Piano
         self._synth.init_practice_channel(channel=_PRACTICE_CHANNEL)
 
+        # Sync player to whatever the combo defaulted to. setCurrentText
+        # does not fire currentTextChanged when the value is already
+        # selected (default "Waiting"), so the player would stay in its
+        # constructor default ("free") otherwise.
+        self._player.set_mode(self._mode_combo.currentText().lower())
+
     # ------------------------------------------------------------------
     # UI construction
     # ------------------------------------------------------------------

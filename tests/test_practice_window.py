@@ -59,6 +59,13 @@ def test_mode_combo_has_waiting_and_free(qtbot):
     assert "Free" in items
 
 
+def test_player_mode_matches_combo_default_on_init(qtbot):
+    """Regression: combo defaults to 'Waiting', player must match (not 'free')."""
+    win, _, _ = make_practice_window(qtbot)
+    assert win._mode_combo.currentText() == "Waiting"
+    assert win._player._mode == "waiting"
+
+
 def test_stop_clears_lit_keys(qtbot):
     win, _, _ = make_practice_window(qtbot)
     win._lit_keys = {60: QColor("#ff0000")}

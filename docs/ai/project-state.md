@@ -17,11 +17,13 @@ Plan: `docs/superpowers/plans/2026-04-06-practice-mode.md`
 
 - M1–M4 milestones (issues #1–#23) — all closed, shipped.
 - Design spec and implementation plan committed (`b14aad4`, `bf648b2`).
+- **Practice Mode v1** (milestone #5) — issues #24–#33 implemented and locally green.
+  - 95 unit/widget tests + 6 end-to-end smoke tests = 102 pass on Python 3.12.
+  - Headless screenshots saved to `tests/smoke/_artifacts/` validate full UI.
 
 ## In progress
 
-- Practice Mode v1 (10 issues, milestone tbd).
-- Per-issue branches are NOT used — all issues land on one run branch.
+- Practice Mode v1 ready for manual smoke on the Ubuntu target box.
 
 ## Risks
 
@@ -36,4 +38,4 @@ Plan: `docs/superpowers/plans/2026-04-06-practice-mode.md`
 
 ## Next step
 
-Create GitHub milestone + 10 issues, then implement Tasks 1–10 in order with TDD.
+Open draft PR for `workflow/run-2026-05-20-practice-mode`, then run manual smoke on `aj@192.168.0.50` per `docs/testing/manual-smoke.md`. Merge when smoke is green.
