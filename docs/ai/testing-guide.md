@@ -20,6 +20,13 @@ DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest -v
 The `DYLD_LIBRARY_PATH` is only required on macOS so pyFluidSynth can find `libfluidsynth.dylib`.
 On the Linux target box, neither var is needed.
 
+**macOS note:** the Qt `offscreen` plugin segfaults (Bus error) when a
+`QMainWindow` is shown or grabbed (PracticeWindow screenshot/open smoke tests).
+`tests/conftest.py` transparently falls back `offscreen` → `minimal` on macOS so
+the command above still works and runs identical test logic. Set
+`SOUNDPAD_KEEP_QT_PLATFORM=1` to force the real `offscreen` plugin. The Linux
+target box uses `offscreen` unchanged.
+
 ## Smoke-test ladder
 
 1. **Static**: `python3 -m py_compile <file>` for syntax sanity.
