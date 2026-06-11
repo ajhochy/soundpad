@@ -1,0 +1,24 @@
+{
+  "issue": 28,
+  "title": "feat: add key_pressed/key_released signals to MidiHandler",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_midi_handler_keys.py — all tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_midi_handler_keys.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "Existing pad/knob/fader behaviour unchanged (no regressions)",
+      "test_cmd": "Inspect _on_midi_message: pad-toggle path still emits pad_toggled; CC paths still emit knob_moved/fader_moved",
+      "expect": "no regression"
+    },
+    {
+      "id": "ac-3",
+      "text": "key_pressed not emitted on percussion channel 9",
+      "test_cmd": "see test_channel_9_does_not_emit_key_pressed",
+      "expect": "no emission for channel 9 keys"
+    }
+  ]
+}

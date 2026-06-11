@@ -1,0 +1,30 @@
+{
+  "issue": 26,
+  "title": "feat: implement MIDI file parsing in core/midi_file_player.py",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_midi_file_player_parsing.py — all 7 tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_midi_file_player_parsing.py -v",
+      "expect": "7 passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "Percussion channel (9) excluded — make_percussion_midi yields []",
+      "test_cmd": "see test_percussion_channel_excluded",
+      "expect": "events == []"
+    },
+    {
+      "id": "ac-3",
+      "text": "Empty/metadata-only files return []",
+      "test_cmd": "see test_empty_file_returns_empty_list",
+      "expect": "events == []"
+    },
+    {
+      "id": "ac-4",
+      "text": "Tempo changes handled correctly — _build_tempo_map handles multi-tempo files",
+      "test_cmd": "added below in test_tempo_change_is_applied",
+      "expect": "later note timestamp reflects mid-song tempo change"
+    }
+  ]
+}

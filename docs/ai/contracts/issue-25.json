@@ -1,0 +1,18 @@
+{
+  "issue": 25,
+  "title": "feat: implement core/note_matcher.py — Linthesia waiting-mode logic",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_note_matcher.py — all 12 tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_note_matcher.py -v",
+      "expect": "12 passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "No Qt or mido imports in core/note_matcher.py",
+      "test_cmd": "! grep -E '(PyQt5|^import mido|from mido)' core/note_matcher.py",
+      "expect": "no match, exit 0"
+    }
+  ]
+}
