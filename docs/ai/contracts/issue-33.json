@@ -1,0 +1,30 @@
+{
+  "issue": 33,
+  "title": "feat: add 🎹 Practice button to MainWindow",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_main_window_practice.py — all tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_main_window_practice.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "Full pytest -v passes (no regressions)",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-3",
+      "text": "Button is visible in the main window between pad grid and master bar",
+      "test_cmd": "see test_main_window_screenshot_offscreen",
+      "expect": "PNG saved + button widget present"
+    },
+    {
+      "id": "ac-4",
+      "text": "Re-clicking Practice button reuses the same instance",
+      "test_cmd": "see test_practice_window_instance_reused",
+      "expect": "single PracticeWindow created across multiple clicks"
+    }
+  ]
+}

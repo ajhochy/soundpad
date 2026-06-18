@@ -1,0 +1,30 @@
+{
+  "issue": 30,
+  "title": "feat: implement piano key layout algorithm in ui/piano_roll_widget.py",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_piano_roll_widget.py (layout-only) — all pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_piano_roll_widget.py -v -k 'not widget'",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "29 white keys + 20 black keys = 49 total",
+      "test_cmd": "see test_returns_all_49_keys / test_white_key_count / test_black_key_count",
+      "expect": "exact counts"
+    },
+    {
+      "id": "ac-3",
+      "text": "C2 (MIDI 36) starts at x=0",
+      "test_cmd": "see test_c2_starts_at_x_zero",
+      "expect": "approx 0.0"
+    },
+    {
+      "id": "ac-4",
+      "text": "C#2 position matches Neothesia formula exactly",
+      "test_cmd": "see test_c_sharp_position_neothesia_algorithm",
+      "expect": "approx 5.75 for WIDGET_W=580 PIANO_H=100"
+    }
+  ]
+}

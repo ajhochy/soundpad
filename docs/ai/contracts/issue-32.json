@@ -1,0 +1,42 @@
+{
+  "issue": 32,
+  "title": "feat: implement ui/practice_window.py — full practice window",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_practice_window.py — all tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_practice_window.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "Mute suppresses FluidSynth calls",
+      "test_cmd": "see test_mute_toggle_suppresses_note_on",
+      "expect": "practice_note_on not called when _muted=True"
+    },
+    {
+      "id": "ac-3",
+      "text": "Stop clears all lit keys",
+      "test_cmd": "see test_stop_clears_lit_keys",
+      "expect": "_lit_keys == {} after _stop()"
+    },
+    {
+      "id": "ac-4",
+      "text": "Speed label updates live with slider",
+      "test_cmd": "see test_speed_label_updates_with_slider",
+      "expect": "label shows new percentage"
+    },
+    {
+      "id": "ac-5",
+      "text": "init_practice_channel(channel=15) called on construction",
+      "test_cmd": "see test_init_practice_channel_called_on_init",
+      "expect": "called once with channel=15"
+    },
+    {
+      "id": "ac-6",
+      "text": "Headless screenshot of the full practice window saved",
+      "test_cmd": "ls tests/smoke/_artifacts/practice_window.png",
+      "expect": "PNG file > 0 bytes"
+    }
+  ]
+}

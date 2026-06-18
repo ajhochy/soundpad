@@ -1,0 +1,30 @@
+{
+  "issue": 27,
+  "title": "feat: implement MidiFilePlayer playback engine in core/midi_file_player.py",
+  "acceptance_criteria": [
+    {
+      "id": "ac-1",
+      "text": "pytest tests/test_midi_file_player_player.py — all tests pass",
+      "test_cmd": "DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest tests/test_midi_file_player_player.py -v",
+      "expect": "all passed"
+    },
+    {
+      "id": "ac-2",
+      "text": "Waiting mode pauses timer when required notes arrive; correct note resumes it",
+      "test_cmd": "see test_waiting_mode_pauses_on_first_note + test_note_pressed_hit_resumes_in_waiting_mode",
+      "expect": "is_playing transitions False -> True on HIT"
+    },
+    {
+      "id": "ac-3",
+      "text": "Wrong note in waiting mode returns MISS; timer stays stopped",
+      "test_cmd": "see test_note_pressed_miss_in_waiting_mode",
+      "expect": "MatchResult.MISS, is_playing remains False"
+    },
+    {
+      "id": "ac-4",
+      "text": "song_finished signal emitted after last note in free mode",
+      "test_cmd": "see test_song_finished_signal",
+      "expect": "signal fires exactly once"
+    }
+  ]
+}
