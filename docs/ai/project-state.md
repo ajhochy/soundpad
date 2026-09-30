@@ -37,3 +37,10 @@ Run manual smoke on `aj@192.168.0.50` per `docs/testing/manual-smoke.md`. Merge 
 
 ---
 **Run history:** one file per run under `docs/ai/runs/` (surfaced as `ai-runs/`). This snapshot is overwritten in place.
+
+## Consolidation 2026-09-29
+- Branch `mega/2026-09-29-consolidation` (from `origin/main` 1032a08). PR: https://github.com/ajhochy/soundpad/pull/35 (draft). Issue: https://github.com/ajhochy/soundpad/issues/36.
+- Folded refs (tip SHA): `workflow/run-2026-05-20-practice-mode` local d35e715 (includes WIP snapshot) / remote 29e21ac (PR #34).
+- Dropped refs: none. Full pre-consolidation state preserved in `~/Documents/.consolidation-backups/soundpad-2026-09-29.bundle`.
+- In-flight worktrees: none (single checkout).
+- Cleanup script (not executed): `~/Documents/.consolidation-backups/cleanup/soundpad-2026-09-29-cleanup.sh`.
