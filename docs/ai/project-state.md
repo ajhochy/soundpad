@@ -1,41 +1,39 @@
-# Project state
+---
+type: project-index
+---
 
-**Last updated:** 2026-05-20
+# Project State — soundpad
 
 ## Current focus
 
-Practice Mode v1 — Midiano-inspired MIDI song learning window.
+Practice Mode v1 — Midiano-inspired MIDI song learning window. Implemented end-to-end; awaiting manual smoke on the Ubuntu target before merge.
 Spec: `docs/superpowers/specs/2026-04-06-practice-mode-design.md`
 Plan: `docs/superpowers/plans/2026-04-06-practice-mode.md`
 
 ## Active branch / PR
 
-- Branch: `workflow/run-2026-05-20-practice-mode` (run-scoped)
-- PR: to be opened after all 10 issues are implemented and green locally
-
-## Recently completed
-
-- M1–M4 milestones (issues #1–#23) — all closed, shipped.
-- Design spec and implementation plan committed (`b14aad4`, `bf648b2`).
-- **Practice Mode v1** (milestone #5) — issues #24–#33 implemented and locally green.
-  - 95 unit/widget tests + 6 end-to-end smoke tests = 102 pass on Python 3.12.
-  - Headless screenshots saved to `tests/smoke/_artifacts/` validate full UI.
+- Branch: `workflow/run-2026-05-20-practice-mode` (run-scoped). No uncommitted changes.
+- PR: draft [PR #34](https://github.com/ajhochy/soundpad/pull/34) open. Merging closes #24–#33.
 
 ## In progress
 
-- Practice Mode v1 ready for manual smoke on the Ubuntu target box.
+- Practice Mode v1 ready for manual smoke on the Ubuntu target box (`aj@192.168.0.50`, real Launchkey MK3 49).
 
-## Risks
+## Risks / known issues
 
 - pyFluidSynth requires native libfluidsynth at import time. On macOS dev box use `DYLD_LIBRARY_PATH=/opt/homebrew/lib`; on the target Ubuntu box the apt package supplies it.
-- `MidiHandler` already emits `note_on`/`note_off`; the new `key_pressed`/`key_released` signals are added alongside (no rename, no regression).
-- pytest-qt needs a real `QApplication`; tests run with `QT_QPA_PLATFORM=offscreen` so no display is required.
+- macOS Qt `offscreen` plugin segfaults (Bus error) when a `QMainWindow` is shown/grabbed; `tests/conftest.py` falls back `offscreen→minimal` on macOS (`SOUNDPAD_KEEP_QT_PLATFORM=1` to force offscreen). Linux uses offscreen unchanged.
+- `MidiHandler` emits the new `key_pressed`/`key_released` signals alongside the existing `note_on`/`note_off` (no rename, no regression to the pad-sound path).
 
 ## Test status
 
-- pytest target: `pytest -v` (run from repo root, in `.venv` with `DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen`).
-- No existing test suite before Practice Mode work began.
+- 102 / 102 pytest green on Python 3.12 (95 unit/widget + 6 end-to-end smoke + regression).
+- Run command: `DYLD_LIBRARY_PATH=/opt/homebrew/lib QT_QPA_PLATFORM=offscreen pytest -v` from repo root in `.venv` (see [[testing-guide]]).
+- Headless screenshots saved to `tests/smoke/_artifacts/` validate the full UI.
 
 ## Next step
 
-Open draft PR for `workflow/run-2026-05-20-practice-mode`, then run manual smoke on `aj@192.168.0.50` per `docs/testing/manual-smoke.md`. Merge when smoke is green.
+Run manual smoke on `aj@192.168.0.50` per `docs/testing/manual-smoke.md`. Merge PR #34 when smoke is green.
+
+---
+**Run history:** one file per run under `docs/ai/runs/` (surfaced as `ai-runs/`). This snapshot is overwritten in place.
