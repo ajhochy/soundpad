@@ -269,6 +269,29 @@ class SynthEngine:
                     self._pads[idx].active = True
                     self._set_channel_volume(idx, self._pads[idx].volume)
 
+    # ------------------------------------------------------------------
+    # Practice channel (channel 15, reserved for PracticeWindow)
+    # ------------------------------------------------------------------
+
+    def init_practice_channel(self, channel: int = 15) -> None:
+        """
+        Set up a dedicated FluidSynth channel for practice mode.
+        Uses the first loaded soundfont with bank 0, program 0 (Grand Piano).
+        Safe to call even if no soundfonts are loaded — does nothing in that case.
+        """
+        if not self._sf_ids:
+            return
+        sfid = next(iter(self._sf_ids.values()))
+        self._fs.program_select(channel, sfid, 0, 0)
+
+    def practice_note_on(self, channel: int, note: int, velocity: int) -> None:
+        """Send a note-on to a FluidSynth channel (used by PracticeWindow)."""
+        self._fs.noteon(channel, note, velocity)
+
+    def practice_note_off(self, channel: int, note: int) -> None:
+        """Send a note-off to a FluidSynth channel (used by PracticeWindow)."""
+        self._fs.noteoff(channel, note)
+
     def shutdown(self):
         self._fs.delete()
 

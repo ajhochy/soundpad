@@ -27,6 +27,7 @@ from PyQt5.QtGui import QFont
 from ui.pad_widget import PadWidget
 from ui.preset_browser import PresetBrowser
 from ui.settings_dialog import SettingsDialog
+from ui.practice_window import PracticeWindow
 from core.synth_engine import gm_family_emoji
 
 
@@ -67,6 +68,7 @@ class MainWindow(QMainWindow):
 
         layout.addLayout(self._build_scene_bar())
         layout.addLayout(self._build_pad_grid())
+        layout.addLayout(self._build_practice_row())
         layout.addWidget(self._build_master_bar())
 
     def _build_scene_bar(self):
@@ -123,6 +125,28 @@ class MainWindow(QMainWindow):
             grid.addWidget(pw, i // 4, i % 4)
 
         return grid
+
+    def _build_practice_row(self):
+        row = QHBoxLayout()
+        self._practice_btn = QPushButton("🎹 Practice")
+        self._practice_btn.setCursor(Qt.PointingHandCursor)
+        self._practice_btn.setStyleSheet(
+            "QPushButton { background: #1e2a2e; color: #00bcd4; border: 1px solid #00bcd4; "
+            "border-radius: 6px; padding: 6px 16px; font-size: 12px; }"
+            "QPushButton:hover { background: #253535; }"
+        )
+        self._practice_btn.clicked.connect(self._open_practice)
+        row.addStretch()
+        row.addWidget(self._practice_btn)
+        row.addStretch()
+        return row
+
+    def _open_practice(self):
+        if not hasattr(self, '_practice_window') or self._practice_window is None:
+            self._practice_window = PracticeWindow(self._synth, self._midi, parent=None)
+        self._practice_window.show()
+        self._practice_window.activateWindow()
+        self._practice_window.raise_()
 
     def _build_master_bar(self):
         container = QWidget()

@@ -29,8 +29,10 @@ class MidiSignals(QObject):
     fader_moved = pyqtSignal(int)        # value 0-127
     learn_captured = pyqtSignal(int, int, int)  # msg_type (0x90/0xB0), channel, byte1
     learn_timeout = pyqtSignal()         # emitted when learn mode expires with no input
-    note_on = pyqtSignal(int, int)       # note (0-127), velocity (1-127)
-    note_off = pyqtSignal(int)           # note (0-127)
+    note_on = pyqtSignal(int, int)       # note (0-127), velocity (1-127) — legacy synth path
+    note_off = pyqtSignal(int)           # note (0-127) — legacy synth path
+    key_pressed = pyqtSignal(int, int)   # note (0-127), velocity (0-127) — Practice Mode
+    key_released = pyqtSignal(int)       # note (0-127) — Practice Mode
 
 
 class MidiHandler:
@@ -127,13 +129,19 @@ class MidiHandler:
                 if entry["channel"] == channel and entry["note"] == byte1:
                     self.signals.pad_toggled.emit(entry["pad"] - 1)
                     return
-            # Not a pad toggle — keyboard key pressed, forward to synth
-            self.signals.note_on.emit(byte1, byte2)
+            # Not a pad toggle — keyboard key pressed.
+            # Skip percussion channel 9; forward to both legacy synth path
+            # and Practice Mode's key_pressed signal.
+            if channel != 9:
+                self.signals.note_on.emit(byte1, byte2)
+                self.signals.key_pressed.emit(byte1, byte2)
             return
 
         # Note-off (explicit note-off or note-on with velocity 0)
         if msg_type == 0x80 or (msg_type == 0x90 and byte2 == 0):
-            self.signals.note_off.emit(byte1)
+            if channel != 9:
+                self.signals.note_off.emit(byte1)
+                self.signals.key_released.emit(byte1)
             return
 
         # CC (knobs + fader)

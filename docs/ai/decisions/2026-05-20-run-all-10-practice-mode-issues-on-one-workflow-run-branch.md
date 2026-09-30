@@ -1,4 +1,5 @@
 ---
+index: "[[SoundPad]]"
 date: 2026-05-20
 repo: soundpad
 tags: [decision, soundpad]

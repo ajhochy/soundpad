@@ -1,3 +1,7 @@
+---
+type: project-index
+---
+
 # Project State — soundpad
 
 ## Current focus
