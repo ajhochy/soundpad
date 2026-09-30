@@ -24,3 +24,6 @@ bash install.sh aj@192.168.0.50 kids
 
 - Do not hardcode passwords, IPs, or usernames in any committed file.
 - The `.ssh/` key stays local and never gets committed.
+
+## Worktree hygiene
+Once a branch's work is committed and pushed to a PR, remove its worktree immediately (`git worktree remove <path> && git worktree prune`) and squash-delete the local branch. Never leave worktrees checked out after PR creation; idle worktrees keep compiling, watching, and eating disk. One active worktree per task, gone when the PR opens.

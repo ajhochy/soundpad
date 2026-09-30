@@ -1,3 +1,7 @@
+---
+type: project-index
+---
+
 # Current plan — Practice Mode v1
 
 **Source of truth:** `docs/superpowers/plans/2026-04-06-practice-mode.md`
